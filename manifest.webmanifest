@@ -1,0 +1,31 @@
+{
+  "name": "早盘集合竞价",
+  "short_name": "早盘竞价",
+  "description": "09:25 自动定稿的早盘集合竞价选股工具",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f0e7",
+  "theme_color": "#173b33",
+  "icons": [
+    {
+      "src": "./auction-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./auction-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
