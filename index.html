@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-06-auction-buy-sell-v14">
+  <meta name="apanel-build" content="2026-11-06-auction-close-ladder-v15">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -160,6 +160,36 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .trade-plan p b{color:#8d5a20;white-space:nowrap}
 .trade-plan p span{color:#5e625c}
 .trade-plan .trade-abort{border-top:1px dashed #dfd1ba;padding-top:7px}
+.close-review{margin-top:11px;padding:11px 12px;border-radius:12px;border:1px solid #ddd5c8;background:#f7f4ec}
+.close-review.success{border-color:#bcdace;background:#edf7f2}
+.close-review.miss{border-color:#e4c4c5;background:#fbf1f1}
+.close-review-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.close-review-head span{color:#87725b;font:700 9px/1 Consolas,monospace;letter-spacing:.8px}
+.close-review-head b{font-size:11px;color:var(--forest)}
+.close-review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.close-review-grid div{padding-top:6px;border-top:1px solid rgba(120,103,75,.14)}
+.close-review-grid small{display:block;color:#8b928e;font-size:9px}
+.close-review-grid strong{display:block;margin-top:3px;font:700 12px/1.3 Consolas,monospace;color:var(--ink)}
+.close-reason{margin:8px 0 0;color:#665f55;font-size:10.5px;line-height:1.6}
+.pick-meta .promoted{background:#dff1e9;color:#17624f;font-weight:700}
+.source-note{margin:0;padding:10px 15px;border-top:1px solid var(--line);background:#f7f2e9;color:#6e746f;font-size:10.5px;line-height:1.65}
+.source-note b{color:#5d513f}
+.candidate-board{padding:12px 14px 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.candidate-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:10px 11px;border:1px solid #e2d8c8;border-radius:11px;background:#fffdf8}
+.candidate-row strong{display:block;color:var(--forest);font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.candidate-row small{display:block;margin-top:3px;color:#8b928e;font:600 9px/1.3 Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.candidate-row b{padding:3px 7px;border-radius:999px;background:var(--amber-soft);color:#8d5a20;font-size:10px;white-space:nowrap}
+.candidate-row time{color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace}
+.candidate-row em{justify-self:end;color:#9a8c77;font-size:9.5px;font-style:normal}
+.ladder-pool{padding:12px 14px 14px}
+.ladder-tier{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid #e8dfd2}
+.ladder-tier:first-child{border-top:0;padding-top:0}
+.ladder-tier>strong{color:var(--amber);font:700 18px/1.2 Georgia,serif}
+.ladder-stocks{display:flex;flex-wrap:wrap;gap:6px}
+.ladder-chip{padding:6px 8px;border:1px solid #ded4c4;border-radius:9px;background:#fffdf8;min-width:112px}
+.ladder-chip b{display:block;color:var(--forest);font-size:11.5px}
+.ladder-chip small{display:block;margin-top:3px;color:#7a8580;font-size:9px}
+.ladder-chip.board20{border-color:#b9d5cd;background:#f2faf7}
 .empty-state,.empty{padding:22px;text-align:center;color:#75817c;font-size:12.5px}
 .previous-block{padding:16px;border:1px solid #d7cdbc;border-radius:17px;background:linear-gradient(145deg,#fffdf8,#f7f1e5)}
 .previous-block .section-head{margin-bottom:5px}
@@ -171,7 +201,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .track-badge.hold{background:var(--teal-soft);color:#17624f}
 .track-badge.watch{background:var(--amber-soft);color:#8d5a20}
 .track-badge.exit{background:var(--red-soft);color:#96373f}
-.track-price{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid #e5dccd}
+.track-price{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px;padding-top:11px;border-top:1px solid #e5dccd}
 .track-price small{display:block;color:#8b928e;font-size:9px}
 .track-price b{display:block;margin-top:4px;color:var(--ink);font:700 12px/1.35 Consolas,monospace}
 .track-plan{margin-top:11px;padding:10px 11px;border-radius:10px;background:#fbf3e6;color:#73582e;font-size:11.5px;line-height:1.65}
@@ -238,6 +268,10 @@ footer p{margin:3px 0}
   .pick-card{padding:15px}
   .pick-body{gap:6px}
   .trade-plan p{grid-template-columns:44px 1fr;gap:6px}
+  .close-review-grid{grid-template-columns:1fr 1fr 1fr}
+  .candidate-board{grid-template-columns:1fr;padding:10px}
+  .ladder-pool{padding:10px}
+  .ladder-tier{grid-template-columns:46px minmax(0,1fr);gap:7px}
   .rules-grid{grid-template-columns:1fr 1fr}
   .sell-script p{grid-template-columns:1fr;gap:3px}
   .fold summary{padding:13px}
@@ -272,7 +306,7 @@ footer p{margin:3px 0}
         </div>
         <span id="phaseTag" class="phase-tag">等待09:25</span>
       </div>
-      <p class="hero-sub">09:25撮合完成后自动筛选并锁定。创/科板参与评分，进入前排时降级，由主板按分数递补。</p>
+      <p class="hero-sub">09:25撮合完成后自动筛选并锁定。目标是从主板候选中选择当日更有机会封板的标的；15:00后自动核验收盘结果和未达预期原因。</p>
       <div class="hero-actions">
         <button id="selectBtn" class="primary" type="button">一键选股</button>
         <span id="actionHint" class="action-hint">09:25后自动执行</span>
@@ -315,6 +349,22 @@ footer p{margin:3px 0}
         <div class="empty-state">等待09:25后自动筛选。</div>
       </div>
     </section>
+
+    <details class="fold candidate-pool-fold" open>
+      <summary><span>今日涨停优选候选 · 下一交易日参考</span><b id="nextCandidateCount">等待数据</b></summary>
+      <p class="source-note"><b>筛选口径：</b>取今日涨停池，排除创业板、科创板、北交所和 ST，按连板高度、首封时间排序。</p>
+      <div id="nextCandidateList" class="candidate-board">
+        <div class="empty-state">收盘后自动整理今日主板涨停候选。</div>
+      </div>
+    </details>
+
+    <details class="fold ladder-fold">
+      <summary><span>今日连板池</span><b id="ladderCount">等待数据</b></summary>
+      <p class="source-note"><b>首封时间口径：</b>来自东方财富涨停池；今日连板池记录今天首次封板时间，昨日优选卡中的“昨日首封”记录前一交易日首次封板时间。</p>
+      <div id="ladderList" class="ladder-pool">
+        <div class="empty-state">盘中读取今日涨停梯队，15:00后转为收盘定稿。</div>
+      </div>
+    </details>
 
     <details class="fold" id="candidateFold">
       <summary><span>候选评分明细</span><b id="candidateCount">0只</b></summary>
@@ -368,10 +418,11 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v14-20261106-buy-sell';
+  const VERSION = 'auction-v15-20261106-close-ladder';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
+  const NEXT_CANDIDATE_KEY = 'auction_lite_next_candidates_v1';
   const LEGACY_SELECTIONS = {
     '20261105': [
       {
@@ -389,7 +440,9 @@ footer p{margin:3px 0}
   const state = {
     loading: false, locked: false, retryAt: 0, sharedCheckAt: 0,
     sharedLoading: false, booting: false, data: null, activeDay: '',
-    previous: null, archiveRecords: [], previousQuoteAt: 0
+    previous: null, archiveRecords: [], previousQuoteAt: 0,
+    marketPool: null, marketPoolAt: 0, marketPoolLoading: false,
+    closeReviewAt: 0, closeReviewLoading: false
   };
 
   const $ = (id) => document.getElementById(id);
@@ -416,6 +469,11 @@ footer p{margin:3px 0}
   function ymdOffset(offset) {
     const d = bjNow();
     d.setDate(d.getDate() - offset);
+    return ymd(d);
+  }
+  function priorTradingDay() {
+    const d = bjNow();
+    do { d.setDate(d.getDate() - 1); } while (d.getDay() === 0 || d.getDay() === 6);
     return ymd(d);
   }
   function clockText() {
@@ -544,11 +602,16 @@ footer p{margin:3px 0}
           previous = await poolOf(API.yzt, poolDay, 400, 'zdp:desc');
         } catch (_) {}
         if (previous && Array.isArray(previous.pool) && previous.pool.length) {
+      const priorDay = priorTradingDay();
+      saveCandidateHistory(priorDay, normalizeLimitRows({ pool: previous.pool })
+        .filter((x) => mainBoardEligible(x.code, x.name)));
           return { day: poolDay, rows: previous.pool, poolType: 'today-yesterday' };
         }
         continue;
       }
       if (poolDay > today) continue;
+      saveCandidateHistory(poolDay, normalizeLimitRows({ pool: zt.pool })
+        .filter((x) => mainBoardEligible(x.code, x.name)));
       return { day: poolDay, rows: zt.pool, poolType: 'previous-limit-up' };
     }
     throw new Error('最近交易日涨停池未取得');
@@ -659,6 +722,11 @@ footer p{margin:3px 0}
     return s.length === 8 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}` : '--';
   }
 
+  function numOrNull(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function compactSelection(day, picks, meta = {}) {
     if (!Array.isArray(picks) || !picks.length) return null;
     return {
@@ -679,7 +747,15 @@ footer p{margin:3px 0}
           gap: Number(p.gap),
           firstTime: Number(p.firstTime),
           stage: p.stage || stage(height),
-          position: p.position || p.positionPct || '—'
+          position: p.position || p.positionPct || '—',
+          closePrice: numOrNull(p.closePrice),
+          closePct: numOrNull(p.closePct),
+          highPct: numOrNull(p.highPct),
+          closeStatus: String(p.closeStatus || ''),
+          failureReason: String(p.failureReason || ''),
+          closeReviewedAt: String(p.closeReviewedAt || ''),
+          advanced: Boolean(p.advanced),
+          candidateAdvanced: Boolean(p.candidateAdvanced)
         };
       })
     };
@@ -704,6 +780,42 @@ footer p{margin:3px 0}
         .slice(0, 12);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(Object.fromEntries(keep.map((x) => [x.day, x]))));
     } catch (_) {}
+  }
+
+  function loadCandidateHistory() {
+    try {
+      const value = JSON.parse(localStorage.getItem(NEXT_CANDIDATE_KEY) || '{}');
+      return value && typeof value === 'object' ? value : {};
+    } catch (_) { return {}; }
+  }
+
+  function saveCandidateHistory(day, rows) {
+    if (!day || !Array.isArray(rows) || !rows.length) return;
+    try {
+      const stored = loadCandidateHistory();
+      stored[day] = {
+        day,
+        updatedAt: clockText(),
+        codes: [...new Set(rows.map((x) => String(x.code || '')).filter(Boolean))]
+      };
+      const keep = Object.values(stored)
+        .filter((x) => x && x.day && Array.isArray(x.codes))
+        .sort((a, b) => String(b.day).localeCompare(String(a.day)))
+        .slice(0, 12);
+      localStorage.setItem(NEXT_CANDIDATE_KEY, JSON.stringify(Object.fromEntries(keep.map((x) => [x.day, x]))));
+    } catch (_) {}
+  }
+
+  function priorCandidateSelection() {
+    const today = ymdOffset(0);
+    return Object.values(loadCandidateHistory())
+      .filter((x) => x && String(x.day) < today && Array.isArray(x.codes))
+      .sort((a, b) => String(b.day).localeCompare(String(a.day)))[0] || null;
+  }
+
+  function isPriorCandidate(code) {
+    const prior = priorCandidateSelection();
+    return Boolean(prior && prior.codes.includes(String(code)));
   }
 
   function selectionFromRecord(rec) {
@@ -766,6 +878,63 @@ footer p{margin:3px 0}
     return { label: '开盘止损', tone: 'exit', text: `${basis} ${sign(gap)}%：开盘优先止损，不补仓、不扛单；参考止损价 ${hardStop}。` };
   }
 
+  function mainBoardEligible(code, name = '') {
+    const raw = String(code || '').toLowerCase();
+    return /^(sh|sz)\d{6}$/.test(raw) &&
+      !/^(sz300|sz301|sh688|sh689)/.test(raw) &&
+      !/ST|退/i.test(String(name || ''));
+  }
+
+  function limitUpThreshold(code, name) {
+    if (/ST|退/i.test(String(name || ''))) return 4.8;
+    return boardDowngraded(code) ? 19.5 : 9.5;
+  }
+
+  function finalQuote(q) {
+    const m = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(q?.time || ''));
+    if (!m || m[1] !== ymdOffset(0)) return false;
+    return Number(m[2]) * 3600 + Number(m[3]) * 60 + Number(m[4]) >= 54000;
+  }
+
+  function closeEvaluation(pick, quote, data) {
+    if (!pick || !finalQuote(quote)) return null;
+    const prev = Number(quote.prevClose);
+    const close = Number(quote.price);
+    const high = Number(quote.high);
+    const open = Number(quote.open);
+    if (!(prev > 0) || !(close > 0)) return null;
+    const closePct = (close / prev - 1) * 100;
+    const highPct = high > 0 ? (high / prev - 1) * 100 : closePct;
+    const openPct = open > 0 ? (open / prev - 1) * 100 : Number(pick.gap) || 0;
+    const threshold = limitUpThreshold(pick.code, pick.name);
+    const closedLimit = closePct >= threshold;
+    const touchedLimit = highPct >= threshold;
+    const closeStatus = closedLimit ? '封板' : touchedLimit ? '触板未封' : '未触板';
+    const reasons = [];
+    if (!closedLimit) {
+      if (touchedLimit) reasons.push('盘中触及涨停，但没有形成收盘封板，封单承接不足');
+      else if (highPct < 3) reasons.push(`全天最高仅 ${sign(highPct)}%，没有形成涨停级上攻`);
+      else reasons.push(`盘中最高 ${sign(highPct)}%，始终未触及涨停价`);
+      if (highPct - closePct >= 3) reasons.push('冲高回落明显，尾盘承接走弱');
+      if (closePct < 0) reasons.push('收盘翻绿，短线资金没有继续承接');
+      else if (closePct < openPct - 2) reasons.push('收盘明显低于开盘表现，日内承接不足');
+      if (data?.cycle?.label && ['退潮期', '分歧期', '冰点期'].includes(data.cycle.label)) {
+        reasons.push(`市场处于${data.cycle.label}，连板接力环境偏弱`);
+      }
+    }
+    return {
+      closePrice: close,
+      closePct,
+      highPct,
+      closeStatus,
+      failureReason: closedLimit
+        ? `收盘上涨 ${sign(closePct)}%，达到封板目标。`
+        : `可能原因：${reasons.join('；') || '收盘强度不足，未能完成封板'}。`,
+      closeReviewedAt: String(quote.time || ''),
+      advanced: closedLimit
+    };
+  }
+
   function renderPreviousSelection() {
     const previous = state.previous;
     const box = $('previousPicks');
@@ -795,12 +964,21 @@ footer p{margin:3px 0}
             <div><span class="pick-rank">PREVIOUS RANK ${p.rank || 1}</span><h3>${esc(p.name)}</h3><small>${esc(p.code.slice(2))} · ${esc(p.sector)}</small></div>
             <span class="track-badge ${plan.tone}">${esc(plan.label)}</span>
           </div>
-          <div class="pick-meta"><span>${esc(p.stage || stage(p.height))}</span><span>${p.height}板</span><span>${esc(p.position || '—')}</span></div>
+          <div class="pick-meta">
+            <span>${esc(p.stage || stage(p.height))}</span><span>${p.height}板</span><span>${esc(p.position || '—')}</span>
+            ${p.candidateAdvanced ? '<span class="promoted">已晋级</span>' : ''}
+          </div>
           <div class="track-price">
             <div><small>昨日参考价</small><b>${price(p.price)}</b></div>
             <div><small>今日竞价</small><b>${p.trackQuote ? sign(gapOf(p.trackQuote)) + '%' : '--'}</b></div>
             <div><small>昨日最终分</small><b>${fmt(p.total, 1)}</b></div>
+            <div><small>昨日收盘</small><b>${p.closeStatus ? price(p.closePrice) : '--'}</b></div>
           </div>
+          ${p.closeStatus ? `
+            <div class="close-review ${p.advanced ? 'success' : 'miss'}">
+              <div class="close-review-head"><span>PREVIOUS CLOSE RESULT</span><b>${esc(p.advanced ? '已晋级' : p.closeStatus)} · ${sign(p.closePct)}%</b></div>
+              <p class="close-reason">${esc(p.failureReason)}</p>
+            </div>` : ''}
           <div class="track-plan"><b>今日处理：</b>${esc(plan.text)}</div>
         </article>`;
     }).join('');
@@ -1088,12 +1266,18 @@ footer p{margin:3px 0}
   function render() {
     const d = state.data;
     if (!d) return;
+    const reviewed = (d.picks || []).filter((p) => p.closeStatus && Number.isFinite(Number(p.closePct)));
+    const closed = reviewed.filter((p) => p.advanced).length;
     $('dateLine').textContent = dateText();
     $('phaseTag').textContent = '竞价已锁定';
-    $('verdict').textContent = d.picks.length ? `今日优选 ${d.picks.length} 只` : '今日无合格标的';
-    $('verdictSub').textContent = d.snapshotId
-      ? '共享原始快照已读取；本页独立执行过滤、评分和排名。'
-      : (d.picks.length ? '09:25 快照已锁定，后续刷新不改评分和排名。' : '按纪律保持空仓，不降低标准补票。');
+    $('verdict').textContent = d.picks.length
+      ? `今日优选 ${d.picks.length} 只${reviewed.length ? ` · 封板 ${closed} 只` : ''}`
+      : '今日无合格标的';
+    $('verdictSub').textContent = reviewed.length
+      ? `收盘核验 ${reviewed.length} 只：封板 ${closed} 只，触板未封 ${reviewed.filter((p) => p.closeStatus === '触板未封').length} 只，未触板 ${reviewed.filter((p) => p.closeStatus === '未触板').length} 只。`
+      : (d.snapshotId
+        ? '共享原始快照已读取；本页独立执行过滤、评分和排名。'
+        : (d.picks.length ? '09:25 评分已锁定；目标为当日封板，15:00后自动补收盘结果。' : '按纪律保持空仓，不降低标准补票。'));
     $('topScore').textContent = d.picks.length ? fmt(d.picks[0].total, 1) : '--';
     $('cycleText').textContent = d.cycle.label;
     $('cycleNote').textContent = d.cycle.note;
@@ -1112,17 +1296,19 @@ footer p{margin:3px 0}
 
     $('picks').innerHTML = d.picks.length ? d.picks.map((c, i) => {
       const plan = tradePlanOf(c);
+      const promoted = Boolean(c.candidateAdvanced || isPriorCandidate(c.code));
+      const reviewed = Boolean(c.closeStatus && Number.isFinite(Number(c.closePct)));
       return `
       <article class="pick-card">
         <div class="pick-top">
           <div><span class="pick-rank">RANK ${i + 1}</span><h3>${esc(c.name)}</h3><small>${esc(c.code.slice(2))} · ${esc(c.sector)}</small></div>
           <strong class="pick-score">${fmt(c.total, 1)}</strong>
         </div>
-        <div class="pick-meta"><span>${esc(c.stage)}</span><span>${c.height}板</span><span>${esc(c.position)}</span></div>
+        <div class="pick-meta"><span>${esc(c.stage)}</span><span>${c.height}板</span><span>${esc(c.position)}</span>${promoted ? '<span class="promoted">已晋级</span>' : ''}</div>
         <div class="pick-body">
           <div><small>竞价参考</small><b>${price(c.price)}</b></div>
           <div><small>竞价涨幅</small><b>${sign(c.gap)}%</b></div>
-          <div><small>首封时间</small><b>${timeText(c.firstTime)}</b></div>
+          <div><small>昨日首封</small><b>${timeText(c.firstTime)}</b></div>
         </div>
         <div class="trade-plan">
           <div class="trade-plan-head"><span>TRADE PLAN</span><b>条件不成立就不买</b></div>
@@ -1132,6 +1318,20 @@ footer p{margin:3px 0}
           <p><b>止盈</b><span>${esc(plan.take)}</span></p>
           <p class="trade-abort"><b>放弃</b><span>${esc(plan.abort)}</span></p>
         </div>
+        ${reviewed ? `
+          <div class="close-review ${c.advanced ? 'success' : 'miss'}">
+            <div class="close-review-head"><span>CLOSE REVIEW</span><b>${esc(c.advanced ? '封板达成 · 已晋级' : c.closeStatus)}</b></div>
+            <div class="close-review-grid">
+              <div><small>最后收盘价</small><strong>${price(c.closePrice)}</strong></div>
+              <div><small>收盘涨幅</small><strong>${sign(c.closePct)}%</strong></div>
+              <div><small>盘中最高</small><strong>${sign(c.highPct)}%</strong></div>
+            </div>
+            <p class="close-reason">${esc(c.failureReason)}</p>
+          </div>` : `
+          <div class="close-review">
+            <div class="close-review-head"><span>CLOSE REVIEW</span><b>等待收盘核验</b></div>
+            <p class="close-reason">15:00后自动补最后收盘价，并判断封板、触板未封或未触板。</p>
+          </div>`}
         <div class="pick-rule"><b>${esc(c.stage)}：</b>${esc(stageNote(c.stage))}，仓位上限 ${esc(c.position)}。</div>
       </article>`;
     }).join('') : '<div class="empty-state">今日没有股票通过情绪、板块、盘口和评分门槛。</div>';
@@ -1146,6 +1346,120 @@ footer p{margin:3px 0}
         <td><b>${fmt(c.total, 1)}</b></td>
         <td>${c.rank ? '优选' + c.rank : c.downgraded ? '创/科降级' : '达标观察'}</td>
       </tr>`).join('') : '<tr><td colspan="6" class="empty">没有达到门槛的股票</td></tr>';
+  }
+
+  function normalizeLimitRows(pool) {
+    return (pool?.pool || pool?.rows || []).map((x) => ({
+      code: ztCode(x),
+      name: String(x.n || x.name || x.c || ''),
+      sector: String(x.hybk || x.sector || '其他'),
+      boards: Math.max(1, Number(x.lbc || x.ylbc) || 1),
+      firstTime: firstTime(x),
+      breaks: Math.max(0, Number(x.zbc) || 0),
+      amount: Number(x.amount) || 0,
+      downgraded: boardDowngraded(ztCode(x))
+    })).filter((x) => x.code && x.name);
+  }
+
+  function renderTodayMarket() {
+    const pool = state.marketPool;
+    const list = $('nextCandidateList');
+    const ladder = $('ladderList');
+    if (!pool || !Array.isArray(pool.rows) || !pool.rows.length) {
+      $('nextCandidateCount').textContent = '等待数据';
+      $('ladderCount').textContent = '等待数据';
+      list.innerHTML = '<div class="empty-state">盘中涨停池生成后自动更新。</div>';
+      ladder.innerHTML = '<div class="empty-state">盘中读取今日涨停梯队，15:00后转为收盘定稿。</div>';
+      return;
+    }
+    const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
+    const ranked = main.slice().sort((a, b) =>
+      b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
+    );
+    const shown = ranked.slice(0, 20);
+    $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
+    list.innerHTML = shown.length ? shown.map((x) => `
+      <div class="candidate-row">
+        <div><strong>${esc(x.name)}</strong><small>${esc(x.code.slice(2))} · ${esc(x.sector)}</small></div>
+        <b>${x.boards}板</b>
+        <time>首封 ${timeText(x.firstTime)}</time>
+        <em>${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
+      </div>`).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
+
+    const groups = {};
+    pool.rows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
+    const tiers = Object.keys(groups).map(Number).sort((a, b) => b - a);
+    $('ladderCount').textContent = `${pool.rows.length}只 · ${pool.final ? '收盘定稿' : '盘中更新'}`;
+    ladder.innerHTML = tiers.map((height) => `
+      <article class="ladder-tier">
+        <strong>${height}板</strong>
+        <div class="ladder-stocks">${groups[height].sort((a, b) =>
+          (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
+        ).map((x) => `
+          <div class="ladder-chip ${x.downgraded ? 'board20' : ''}">
+            <b>${esc(x.name)} <small>${esc(x.code.slice(2))}</small></b>
+            <small>${esc(x.sector)} · 首封 ${timeText(x.firstTime)}</small>
+          </div>`).join('')}</div>
+      </article>`).join('');
+  }
+
+  async function refreshTodayMarket(force = false) {
+    if (state.marketPoolLoading) return;
+    const now = bjNow();
+    const day = now.getDay();
+    const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    if (day < 1 || day > 5 || sec < 34200) return;
+    if (!force && Date.now() - state.marketPoolAt < 60000) return;
+    state.marketPoolAt = Date.now();
+    state.marketPoolLoading = true;
+    try {
+      const raw = await poolOf(API.zt, ymdOffset(0), 500);
+      const rows = normalizeLimitRows(raw);
+      if (rows.length && String(raw?.qdate || ymdOffset(0)) === ymdOffset(0)) {
+        state.marketPool = { day: ymdOffset(0), rows, final: sec >= 54000 };
+        renderTodayMarket();
+        saveCandidateHistory(ymdOffset(0), rows.filter((x) => mainBoardEligible(x.code, x.name)));
+      }
+    } catch (_) {
+      renderTodayMarket();
+    } finally {
+      state.marketPoolLoading = false;
+    }
+  }
+
+  async function refreshPicksClose(force = false) {
+    const data = state.data;
+    if (!data?.picks?.length || state.closeReviewLoading) return;
+    const now = bjNow();
+    const day = now.getDay();
+    const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    if (day < 1 || day > 5 || sec < 54000) return;
+    if (!force && Date.now() < state.closeReviewAt) return;
+    state.closeReviewAt = Date.now() + 60000;
+    state.closeReviewLoading = true;
+    try {
+      const qs = await quotes(data.picks.map((p) => p.code));
+      let changed = false;
+      data.picks.forEach((pick) => {
+        const review = closeEvaluation(pick, qs[pick.code], data);
+        if (review) {
+          Object.assign(pick, review);
+          changed = true;
+        }
+      });
+      if (changed) {
+        saveLock(data);
+        render();
+        state.previous = resolvePreviousSelection();
+        renderPreviousSelection();
+        state.closeReviewAt = Date.now() + 120000;
+      }
+    } catch (_) {
+      renderTodayMarket();
+      state.closeReviewAt = Date.now() + 15000;
+    } finally {
+      state.closeReviewLoading = false;
+    }
   }
 
   function stageNote(s) {
@@ -1218,6 +1532,9 @@ footer p{margin:3px 0}
 
   function saveLock(data) {
     try {
+      (data?.picks || []).forEach((pick) => {
+        pick.candidateAdvanced = Boolean(pick.candidateAdvanced || isPriorCandidate(pick.code));
+      });
       localStorage.setItem(LOCK_KEY, JSON.stringify({ version: VERSION, day: ymdOffset(0), data }));
       saveSelectionHistory(ymdOffset(0), data?.picks || [], { lockedAt: data?.lockedAt || '' });
     } catch (_) {}
@@ -1309,6 +1626,7 @@ footer p{margin:3px 0}
       state.retryAt = 0;
       saveLock(data);
       render();
+      if (sec >= 54000) refreshPicksClose(true);
     } catch (e) {
       $('phaseTag').textContent = '等待重试';
       $('verdict').textContent = '本轮未生成优选';
@@ -1363,6 +1681,12 @@ footer p{margin:3px 0}
     if (state.previous && day >= 1 && day <= 5 && sec >= 33902 &&
         Date.now() - state.previousQuoteAt >= 30000) {
       refreshPreviousQuotes(false);
+    }
+    if (day >= 1 && day <= 5 && sec >= 34200) {
+      refreshTodayMarket(false);
+    }
+    if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 54000) {
+      refreshPicksClose(false);
     }
     if (!state.locked && (day < 1 || day > 5)) {
       $('selectBtn').disabled = true;
