@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-06-auction-close-ladder-v15">
+  <meta name="apanel-build" content="2026-11-06-auction-final-pct-sector-v16">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -129,6 +129,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 
 .section-block{margin-top:24px}
 .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:11px}
+.section-date{display:block;margin-top:6px;color:#8a7962;font:600 10px/1.4 Consolas,monospace;letter-spacing:.25px}
 .section-head h2{margin:5px 0 0;font:700 24px/1.25 Georgia,"Songti SC",serif;color:var(--forest)}
 .count-tag{font:700 11px/1 Consolas,monospace;color:#5e6d68;padding:7px 9px;border-radius:999px;background:#e8e2d6}
 .picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -181,6 +182,11 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .candidate-row b{padding:3px 7px;border-radius:999px;background:var(--amber-soft);color:#8d5a20;font-size:10px;white-space:nowrap}
 .candidate-row time{color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace}
 .candidate-row em{justify-self:end;color:#9a8c77;font-size:9.5px;font-style:normal}
+.candidate-row .final-pct{display:block;margin-top:4px}
+.final-pct{font:700 9.5px/1.3 Consolas,monospace;white-space:nowrap}
+.final-pct.up{color:var(--red)}.final-pct.down{color:var(--teal)}
+.sector-rank{color:#7e6846}
+.sector-rank.leader{color:#9b4d24;font-weight:700}
 .ladder-pool{padding:12px 14px 14px}
 .ladder-tier{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid #e8dfd2}
 .ladder-tier:first-child{border-top:0;padding-top:0}
@@ -189,6 +195,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .ladder-chip{padding:6px 8px;border:1px solid #ded4c4;border-radius:9px;background:#fffdf8;min-width:112px}
 .ladder-chip b{display:block;color:var(--forest);font-size:11.5px}
 .ladder-chip small{display:block;margin-top:3px;color:#7a8580;font-size:9px}
+.ladder-chip .final-pct{display:block;margin-top:4px;font-size:9.5px}
 .ladder-chip.board20{border-color:#b9d5cd;background:#f2faf7}
 .empty-state,.empty{padding:22px;text-align:center;color:#75817c;font-size:12.5px}
 .previous-block{padding:16px;border:1px solid #d7cdbc;border-radius:17px;background:linear-gradient(145deg,#fffdf8,#f7f1e5)}
@@ -219,6 +226,8 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{padding:9px 10px;text-align:left;border-top:1px solid #ece5da;white-space:nowrap}
 th{color:#7d8782;background:#f2ede3;font-size:10px;letter-spacing:.4px}
 td small{display:block;color:#8c9691;font-size:9px}
+td .sector-rank{display:block;margin-top:4px}
+td .final-pct{display:block;margin-top:4px}
 .rules-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:0 14px 14px}
 .rules-grid article{padding:12px;border:1px solid #e4d9c8;border-radius:12px;background:#fbf6ed}
 .rules-grid span{font:700 12px/1 Georgia,serif;color:var(--amber)}
@@ -331,7 +340,11 @@ footer p{margin:3px 0}
 
     <section id="previousBlock" class="section-block previous-block">
       <div class="section-head">
-        <div><span class="section-label">PREVIOUS PICKS · HOLDING TRACK</span><h2>上一交易日优选与今日买卖分析</h2></div>
+        <div>
+          <span class="section-label">PREVIOUS PICKS · HOLDING TRACK</span>
+          <span id="previousWhen" class="section-date">上一交易日 -- · 今日 --</span>
+          <h2>上一交易日优选与今日买卖分析</h2>
+        </div>
         <span id="previousDay" class="count-tag">--</span>
       </div>
       <p id="previousHint" class="previous-hint">读取上一交易日定稿；今日09:25后自动更新竞价分类和持仓处理。</p>
@@ -342,7 +355,11 @@ footer p{margin:3px 0}
 
     <section class="section-block picks-block">
       <div class="section-head">
-        <div><span class="section-label">TODAY PICKS</span><h2>今日竞价优选</h2></div>
+        <div>
+          <span class="section-label">TODAY PICKS</span>
+          <span id="todayWhen" class="section-date">今日 --</span>
+          <h2>今日竞价优选</h2>
+        </div>
         <span id="pickCount" class="count-tag">0只</span>
       </div>
       <div id="picks" class="picks">
@@ -370,7 +387,7 @@ footer p{margin:3px 0}
       <summary><span>候选评分明细</span><b id="candidateCount">0只</b></summary>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>序</th><th>标的</th><th>板块 / 阶段</th><th>竞价</th><th>最终分</th><th>状态</th></tr></thead>
+          <thead><tr><th>序</th><th>标的</th><th>今收</th><th>板块 / 阶段</th><th>竞价</th><th>最终分</th><th>状态</th></tr></thead>
           <tbody id="candidateBody"><tr><td colspan="6" class="empty">等待数据</td></tr></tbody>
         </table>
       </div>
@@ -418,7 +435,7 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v15-20261106-close-ladder';
+  const VERSION = 'auction-v16-20261106-final-pct-sector';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -442,7 +459,7 @@ footer p{margin:3px 0}
     sharedLoading: false, booting: false, data: null, activeDay: '',
     previous: null, archiveRecords: [], previousQuoteAt: 0,
     marketPool: null, marketPoolAt: 0, marketPoolLoading: false,
-    closeReviewAt: 0, closeReviewLoading: false
+    closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {}
   };
 
   const $ = (id) => document.getElementById(id);
@@ -483,6 +500,28 @@ footer p{margin:3px 0}
   function dateText() {
     const d = bjNow();
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} · ${'日一二三四五六'[d.getDay()]}`;
+  }
+  function updateSectionDates() {
+    const nowText = `${displayDay(ymdOffset(0))} ${clockText()}`;
+    const previousText = state.previous?.day ? displayDay(state.previous.day) : '--';
+    if ($('previousWhen')) $('previousWhen').textContent = `上一交易日 ${previousText} 收盘 · 今日 ${nowText}`;
+    if ($('todayWhen')) $('todayWhen').textContent = `今日 ${nowText}`;
+  }
+  function finalPctClass(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? 'up' : Number.isFinite(n) && n < 0 ? 'down' : '';
+  }
+  function finalPctFor(code, fallback) {
+    const q = state.finalQuotes[String(code || '')];
+    const qValue = q ? Number(q.pct) : NaN;
+    const fallbackValue = fallback == null || fallback === '' ? NaN : Number(fallback);
+    const value = Number.isFinite(qValue) ? qValue : fallbackValue;
+    return Number.isFinite(value) ? value : null;
+  }
+  function finalPctMarkup(code, fallback, prefix = '今收') {
+    const value = finalPctFor(code, fallback);
+    return value == null ? `<span class="final-pct">${prefix} --</span>` :
+      `<span class="final-pct ${finalPctClass(value)}">${prefix} ${sign(value)}%</span>`;
   }
 
   function toast(text) {
@@ -939,6 +978,7 @@ footer p{margin:3px 0}
     const previous = state.previous;
     const box = $('previousPicks');
     if (!box) return;
+    updateSectionDates();
     if (!previous) {
       $('previousDay').textContent = '暂无';
       $('previousHint').textContent = '暂无可读取的上一交易日优选；今日定稿后会自动保留。';
@@ -1304,7 +1344,11 @@ footer p{margin:3px 0}
           <div><span class="pick-rank">RANK ${i + 1}</span><h3>${esc(c.name)}</h3><small>${esc(c.code.slice(2))} · ${esc(c.sector)}</small></div>
           <strong class="pick-score">${fmt(c.total, 1)}</strong>
         </div>
-        <div class="pick-meta"><span>${esc(c.stage)}</span><span>${c.height}板</span><span>${esc(c.position)}</span>${promoted ? '<span class="promoted">已晋级</span>' : ''}</div>
+        <div class="pick-meta">
+          <span>${esc(c.stage)}</span><span>${c.height}板</span><span>${esc(c.position)}</span>
+          <span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span>
+          ${promoted ? '<span class="promoted">已晋级</span>' : ''}
+        </div>
         <div class="pick-body">
           <div><small>竞价参考</small><b>${price(c.price)}</b></div>
           <div><small>竞价涨幅</small><b>${sign(c.gap)}%</b></div>
@@ -1341,15 +1385,16 @@ footer p{margin:3px 0}
       <tr>
         <td>${c.downgraded ? '降级' : i + 1}</td>
         <td><b>${esc(c.name)}</b><small>${esc(c.code.slice(2))}</small></td>
-        <td>${esc(c.sector)}<small>${esc(stage(c.height))} · 板块第${c.sectorRank}</small></td>
+        <td>${finalPctMarkup(c.code,c.finalPct)}</td>
+        <td><span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span><small>${esc(stage(c.height))}</small></td>
         <td>${sign(c.gap)}%</td>
         <td><b>${fmt(c.total, 1)}</b></td>
         <td>${c.rank ? '优选' + c.rank : c.downgraded ? '创/科降级' : '达标观察'}</td>
-      </tr>`).join('') : '<tr><td colspan="6" class="empty">没有达到门槛的股票</td></tr>';
+      </tr>`).join('') : '<tr><td colspan="7" class="empty">没有达到门槛的股票</td></tr>';
   }
 
   function normalizeLimitRows(pool) {
-    return (pool?.pool || pool?.rows || []).map((x) => ({
+    const rows = (pool?.pool || pool?.rows || []).map((x) => ({
       code: ztCode(x),
       name: String(x.n || x.name || x.c || ''),
       sector: String(x.hybk || x.sector || '其他'),
@@ -1359,6 +1404,18 @@ footer p{margin:3px 0}
       amount: Number(x.amount) || 0,
       downgraded: boardDowngraded(ztCode(x))
     })).filter((x) => x.code && x.name);
+    const groups = {};
+    rows.forEach((x) => (groups[x.sector] = groups[x.sector] || []).push(x));
+    Object.values(groups).forEach((group) => {
+      group.sort((a, b) =>
+        b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
+      );
+      group.forEach((x, i) => {
+        x.sectorRank = i + 1;
+        x.sectorLeader = i === 0;
+      });
+    });
+    return rows;
   }
 
   function renderTodayMarket() {
@@ -1380,10 +1437,10 @@ footer p{margin:3px 0}
     $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => `
       <div class="candidate-row">
-        <div><strong>${esc(x.name)}</strong><small>${esc(x.code.slice(2))} · ${esc(x.sector)}</small></div>
+        <div><strong>${esc(x.name)}</strong><small>${esc(x.code.slice(2))} · ${esc(x.sector)}</small>${finalPctMarkup(x.code,null)}</div>
         <b>${x.boards}板</b>
         <time>首封 ${timeText(x.firstTime)}</time>
-        <em>${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
+        <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</span> · ${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
       </div>`).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
 
     const groups = {};
@@ -1399,6 +1456,8 @@ footer p{margin:3px 0}
           <div class="ladder-chip ${x.downgraded ? 'board20' : ''}">
             <b>${esc(x.name)} <small>${esc(x.code.slice(2))}</small></b>
             <small>${esc(x.sector)} · 首封 ${timeText(x.firstTime)}</small>
+            ${finalPctMarkup(x.code,null)}
+            <small class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</small>
           </div>`).join('')}</div>
       </article>`).join('');
   }
@@ -1419,6 +1478,7 @@ footer p{margin:3px 0}
         state.marketPool = { day: ymdOffset(0), rows, final: sec >= 54000 };
         renderTodayMarket();
         saveCandidateHistory(ymdOffset(0), rows.filter((x) => mainBoardEligible(x.code, x.name)));
+        if (sec >= 54000) refreshPicksClose(true);
       }
     } catch (_) {
       renderTodayMarket();
@@ -1438,10 +1498,27 @@ footer p{margin:3px 0}
     state.closeReviewAt = Date.now() + 60000;
     state.closeReviewLoading = true;
     try {
-      const qs = await quotes(data.picks.map((p) => p.code));
+      const codes = [...new Set([
+        ...data.picks.map((p) => p.code),
+        ...(data.all || []).map((p) => p.code),
+        ...(state.marketPool?.rows || []).map((p) => p.code)
+      ].filter(Boolean))];
+      const qs = await quotes(codes);
       let changed = false;
+      Object.entries(qs).forEach(([code, quote]) => {
+        if (finalQuote(quote)) {
+          state.finalQuotes[code] = quote;
+          changed = true;
+        }
+      });
+      (data.all || []).forEach((pick) => {
+        const quote = state.finalQuotes[pick.code];
+        if (!quote) return;
+        pick.finalPrice = Number(quote.price);
+        pick.finalPct = Number(quote.pct);
+      });
       data.picks.forEach((pick) => {
-        const review = closeEvaluation(pick, qs[pick.code], data);
+        const review = closeEvaluation(pick, state.finalQuotes[pick.code], data);
         if (review) {
           Object.assign(pick, review);
           changed = true;
@@ -1450,6 +1527,7 @@ footer p{margin:3px 0}
       if (changed) {
         saveLock(data);
         render();
+        renderTodayMarket();
         state.previous = resolvePreviousSelection();
         renderPreviousSelection();
         state.closeReviewAt = Date.now() + 120000;
@@ -1668,6 +1746,7 @@ footer p{margin:3px 0}
       return;
     }
     $('clock').textContent = clockText();
+    updateSectionDates();
     const d = bjNow();
     const day = d.getDay();
     const sec = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
