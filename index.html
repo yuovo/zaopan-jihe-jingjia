@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-06-auction-history-sell-v13">
+  <meta name="apanel-build" content="2026-11-06-auction-buy-sell-v14">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -149,6 +149,17 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .pick-body b{display:block;margin-top:4px;color:var(--ink);font:700 12.5px/1.3 Consolas,monospace}
 .pick-note{margin:12px 0 0;color:#52625d;font-size:11.5px;line-height:1.65}
 .pick-rule{margin-top:10px;padding:9px 10px;border-radius:10px;background:#edf6f2;color:#285d50;font-size:11px;line-height:1.6}
+.trade-plan{
+  margin-top:11px;padding:11px 12px;border:1px solid #dfd3bf;border-radius:12px;
+  background:linear-gradient(135deg,#fffaf0,#f8f1e4);
+}
+.trade-plan-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.trade-plan-head span{color:#876c3e;font:700 9px/1 Consolas,monospace;letter-spacing:.8px}
+.trade-plan-head b{color:#5d4828;font-size:10.5px}
+.trade-plan p{display:grid;grid-template-columns:50px 1fr;gap:8px;margin:6px 0 0;font-size:11px;line-height:1.6}
+.trade-plan p b{color:#8d5a20;white-space:nowrap}
+.trade-plan p span{color:#5e625c}
+.trade-plan .trade-abort{border-top:1px dashed #dfd1ba;padding-top:7px}
 .empty-state,.empty{padding:22px;text-align:center;color:#75817c;font-size:12.5px}
 .previous-block{padding:16px;border:1px solid #d7cdbc;border-radius:17px;background:linear-gradient(145deg,#fffdf8,#f7f1e5)}
 .previous-block .section-head{margin-bottom:5px}
@@ -226,6 +237,7 @@ footer p{margin:3px 0}
   .picks{grid-template-columns:1fr}
   .pick-card{padding:15px}
   .pick-body{gap:6px}
+  .trade-plan p{grid-template-columns:44px 1fr;gap:6px}
   .rules-grid{grid-template-columns:1fr 1fr}
   .sell-script p{grid-template-columns:1fr;gap:3px}
   .fold summary{padding:13px}
@@ -326,11 +338,13 @@ footer p{margin:3px 0}
     </details>
 
     <details class="fold">
-      <summary><span>次日卖出剧本</span><b>竞价分类执行</b></summary>
+      <summary><span>买入与卖出纪律</span><b>先确认，再执行</b></summary>
       <div class="sell-script">
-        <p><b>高开&gt;1.5%</b><span>冲高分批止盈，不贪涨停。</span></p>
-        <p><b>平开或小幅低开</b><span>9:30–9:45不翻红、不上均价线则退出。</span></p>
-        <p><b>低开&gt;-2%</b><span>开盘优先止损，不补仓、不扛单。</span></p>
+        <p><b>买入条件</b><span>9:30–9:45 站上开盘价和分时均价，回踩不破再分两笔；首笔只用计划仓位一半，不在第一分钟追直线脉冲。</span></p>
+        <p><b>高开处理</b><span>竞价高开超过 5.5% 不追；高开 1.5%–5.5% 只等回落承接，不接一致加速。</span></p>
+        <p><b>止损纪律</b><span>较竞价参考价 -2% 为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行止损。</span></p>
+        <p><b>止盈纪律</b><span>主板涨到 +4%～+5% 先卖一半，+7%～+8% 再减；封板可持有，开板后回封失败则清掉剩余仓位。</span></p>
+        <p><b>直接放弃</b><span>低开超过 -1.5% 不主动买；板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
       </div>
     </details>
 
@@ -354,7 +368,7 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v13-20261106-history-corrected';
+  const VERSION = 'auction-v14-20261106-buy-sell';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -557,13 +571,15 @@ footer p{margin:3px 0}
     };
   }
 
-  async function quotes(codes) {
+  async function quotes(codes, onProgress) {
     const list = [...new Set(codes.filter(Boolean))];
     const out = {};
     for (let start = 0; start < list.length; start += 40) {
       const chunk = list.slice(start, start + 40);
       chunk.forEach((c) => { window['v_' + c] = undefined; });
-      await loadScript(API.quote + chunk.join(',') + '&_=' + Date.now(), 'GBK');
+      try {
+        await loadScript(API.quote + chunk.join(',') + '&_=' + Date.now(), 'GBK', 8000);
+      } catch (_) {}
       chunk.forEach((c) => {
         const raw = window['v_' + c];
         if (typeof raw === 'string' && raw.length > 6) {
@@ -571,21 +587,58 @@ footer p{margin:3px 0}
           if (q) out[c] = q;
         }
       });
+      if (onProgress) onProgress({ done: Math.min(start + chunk.length, list.length), total: list.length, received: Object.keys(out).length });
     }
     if (!Object.keys(out).length) throw new Error('竞价行情没有返回');
     return out;
   }
 
+  function quoteReady(q) {
+    const m = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(q?.time || ''));
+    const sec = m ? Number(m[2]) * 3600 + Number(m[3]) * 60 + Number(m[4]) : 0;
+    return Boolean(q && m && m[1] === ymdOffset(0) && sec >= 33900 &&
+      q.prevClose > 0 && q.open > 0 && q.volume > 0 && q.amount > 0);
+  }
+
   function quoteCoverage(qs, codes) {
     const required = [...new Set(codes.filter(Boolean))];
-    const complete = required.filter((code) => {
-      const q = qs[code];
-      const m = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(q?.time || ''));
-      const sec = m ? Number(m[2]) * 3600 + Number(m[3]) * 60 + Number(m[4]) : 0;
-      return q && m && m[1] === ymdOffset(0) && sec >= 33902 &&
-        q.prevClose > 0 && q.open > 0 && q.volume > 0 && q.amount > 0;
-    }).length;
+    const complete = required.filter((code) => quoteReady(qs[code])).length;
     return required.length ? complete / required.length : 0;
+  }
+
+  function quoteCandidateCodes(pool) {
+    const rows = (pool?.rows || []).map((x) => ({ ...x, code: ztCode(x) })).filter((x) => x.code);
+    const rep = rows.slice().sort((a, b) =>
+      (Number(b.ylbc || b.lbc) || 1) - (Number(a.ylbc || a.lbc) || 1) ||
+      (firstTime(a) || Infinity) - (firstTime(b) || Infinity) ||
+      (Number(b.amount) || 0) - (Number(a.amount) || 0)
+    )[0];
+    const selected = rows.slice().sort((a, b) =>
+      (firstTime(a) || Infinity) - (firstTime(b) || Infinity) ||
+      (Number(b.amount) || 0) - (Number(a.amount) || 0) ||
+      (Number(b.ylbc || b.lbc) || 1) - (Number(a.ylbc || a.lbc) || 1)
+    ).slice(0, 120);
+    return [...new Set([rep?.code, ...selected.map((x) => x.code)].filter(Boolean))];
+  }
+
+  async function collectStableQuotes(codes, onProgress) {
+    let collected = {};
+    let remaining = [...new Set(codes.filter(Boolean))];
+    let coverage = quoteCoverage(collected, remaining);
+    for (let attempt = 1; attempt <= 3 && remaining.length; attempt++) {
+      if (onProgress) onProgress({ stage: 'quotes', attempt, ready: codes.length - remaining.length, total: codes.length });
+      try {
+        const batch = await quotes(remaining, (p) => {
+          if (onProgress) onProgress({ stage: 'chunk', attempt, ready: codes.length - remaining.length + p.received, total: codes.length });
+        });
+        collected = { ...collected, ...batch };
+      } catch (_) {}
+      remaining = codes.filter((code) => !quoteReady(collected[code]));
+      coverage = quoteCoverage(collected, codes);
+      if (coverage >= .95 || !remaining.length) break;
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+    return { quotes: collected, coverage, missing: remaining.length };
   }
 
   function gapOf(q) {
@@ -598,7 +651,7 @@ footer p{margin:3px 0}
     const m = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(q?.time || ''));
     if (!m || m[1] !== ymdOffset(0)) return false;
     const sec = Number(m[2]) * 3600 + Number(m[3]) * 60 + Number(m[4]);
-    return sec >= 33902 && sec <= 33960;
+    return sec >= 33900 && sec <= 33960;
   }
 
   function displayDay(day) {
@@ -696,16 +749,21 @@ footer p{margin:3px 0}
     if (!Number.isFinite(gap)) {
       return { label: '数据不足', tone: 'wait', text: '竞价开盘字段不完整，先按开盘价和成本价人工确认。' };
     }
+    const open = Number(q.open) > 0 ? Number(q.open) : Number(q.price);
+    const hardStop = Number.isFinite(open) ? price(open * .98) : '--';
+    const stamp = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(q.time || ''));
+    const quoteSec = stamp ? Number(stamp[2]) * 3600 + Number(stamp[3]) * 60 + Number(stamp[4]) : 0;
+    const basis = quoteSec <= 33960 ? '竞价' : '开盘';
     if (gap > 1.5) {
-      return { label: '高开止盈', tone: 'exit', text: `竞价 ${sign(gap)}%：冲高分批兑现，不贪涨停；跌破开盘价或分时均价时清掉剩余仓位。` };
+      return { label: '高开止盈', tone: 'exit', text: `${basis} ${sign(gap)}%：先卖一半，剩余冲高不过前高或跌破开盘价/分时均价时清仓；硬止损参考 ${hardStop}。` };
     }
     if (gap >= -.5) {
-      return { label: '观察承接', tone: 'watch', text: `竞价 ${sign(gap)}%：9:30–9:45不能翻红并站稳分时均价就退出，不补仓。` };
+      return { label: '观察承接', tone: 'watch', text: `${basis} ${sign(gap)}%：9:30–9:45必须翻红并站稳分时均价，否则退出；跌破 ${hardStop} 直接止损，不补仓。` };
     }
     if (gap >= -2) {
-      return { label: '弱势减仓', tone: 'watch', text: `竞价 ${sign(gap)}%：禁止补仓；9:45前不能回封并站上分时均价就减仓或清仓。` };
+      return { label: '弱势减仓', tone: 'watch', text: `${basis} ${sign(gap)}%：禁止补仓，先减一半；9:45前不能站上分时均价则清仓，跌破 ${hardStop} 直接止损。` };
     }
-    return { label: '开盘止损', tone: 'exit', text: `竞价 ${sign(gap)}%：低开超过-2%，开盘优先止损，不补仓、不扛单。` };
+    return { label: '开盘止损', tone: 'exit', text: `${basis} ${sign(gap)}%：开盘优先止损，不补仓、不扛单；参考止损价 ${hardStop}。` };
   }
 
   function renderPreviousSelection() {
@@ -725,7 +783,7 @@ footer p{margin:3px 0}
       return;
     }
     $('previousHint').textContent = previous.quoteClock
-      ? `已更新今日 ${previous.quoteClock} 竞价；以下为昨日持仓处理，实际成本请以成交价为准。`
+      ? `已读取今日最新行情 ${previous.quoteClock}；涨跌幅按今日开盘价计算，实际成本请以成交价为准。`
       : (bjNow().getDay() === 0 || bjNow().getDay() === 6
         ? '周末休市；下一交易日09:25后自动更新竞价和持仓处理。'
         : '等待今日09:25竞价；到点后自动更新高开、平开、低开的卖出处理。');
@@ -1052,7 +1110,9 @@ footer p{margin:3px 0}
     $('selectBtn').disabled = true;
     $('actionHint').textContent = d.snapshotId ? '共享原始快照 · 本页独立评分' : '今日结果已固定';
 
-    $('picks').innerHTML = d.picks.length ? d.picks.map((c, i) => `
+    $('picks').innerHTML = d.picks.length ? d.picks.map((c, i) => {
+      const plan = tradePlanOf(c);
+      return `
       <article class="pick-card">
         <div class="pick-top">
           <div><span class="pick-rank">RANK ${i + 1}</span><h3>${esc(c.name)}</h3><small>${esc(c.code.slice(2))} · ${esc(c.sector)}</small></div>
@@ -1064,9 +1124,17 @@ footer p{margin:3px 0}
           <div><small>竞价涨幅</small><b>${sign(c.gap)}%</b></div>
           <div><small>首封时间</small><b>${timeText(c.firstTime)}</b></div>
         </div>
-        <p class="pick-note"><b>执行参考：</b>09:30后同时站上开盘价和分时均价，回踩不破且板块仍强再分批；不追无量脉冲。</p>
+        <div class="trade-plan">
+          <div class="trade-plan-head"><span>TRADE PLAN</span><b>条件不成立就不买</b></div>
+          <p><b>买入</b><span>${esc(plan.buy)}</span></p>
+          <p><b>仓位</b><span>${esc(plan.position)}</span></p>
+          <p><b>止损</b><span>${esc(plan.stop)}</span></p>
+          <p><b>止盈</b><span>${esc(plan.take)}</span></p>
+          <p class="trade-abort"><b>放弃</b><span>${esc(plan.abort)}</span></p>
+        </div>
         <div class="pick-rule"><b>${esc(c.stage)}：</b>${esc(stageNote(c.stage))}，仓位上限 ${esc(c.position)}。</div>
-      </article>`).join('') : '<div class="empty-state">今日没有股票通过情绪、板块、盘口和评分门槛。</div>';
+      </article>`;
+    }).join('') : '<div class="empty-state">今日没有股票通过情绪、板块、盘口和评分门槛。</div>';
 
     const list = d.ranked.slice(0, 20);
     $('candidateBody').innerHTML = list.length ? list.map((c, i) => `
@@ -1086,6 +1154,42 @@ footer p{margin:3px 0}
     if (s === '3进4') return '高辨识度、主线支撑、分歧回封';
     return '只做情绪加速段，轻仓快进快出';
   }
+
+  function tradePlanOf(c) {
+    const ref = Number(c?.price);
+    const gap = Number(c?.gap);
+    if (!Number.isFinite(ref) || ref <= 0 || !Number.isFinite(gap)) {
+      return {
+        buy: '竞价参考价或涨幅缺失，不执行。',
+        position: '空仓等待下一交易日。',
+        stop: '数据补齐后再计算，不以收盘价代替竞价价。',
+        take: '无计划。',
+        abort: '数据不完整直接放弃。'
+      };
+    }
+    const low = price(ref * .995);
+    const high = price(ref * 1.005);
+    const stop = price(ref * .98);
+    const firstTake = price(ref * (c.downgraded ? 1.06 : 1.04));
+    const secondTake = price(ref * (c.downgraded ? 1.10 : 1.07));
+    let buy;
+    if (gap > 5.5) {
+      buy = `高开 ${sign(gap)}% 不追。只在回落到 ${low}–${high} 后重新站稳分时均价，才考虑小仓。`;
+    } else if (gap < -1.5) {
+      buy = `低开 ${sign(gap)}% 暂不买主动单。只有 9:45 前重新站上 ${price(ref)} 且分时均价同步上翘，才允许小仓弱转强。`;
+    } else if (gap < -.5) {
+      buy = `弱势开局，先观察；9:30–9:45 回踩 ${low}–${high} 不破且站上分时均价，再只用首笔试探。`;
+    } else {
+      buy = `9:30–9:45 首次回踩 ${low}–${high}，同时站上开盘价和分时均价后再分两笔，不追第一分钟直线脉冲。`;
+    }
+    return {
+      buy,
+      position: `总仓位上限 ${c.position || '5%'}；首笔只用计划仓位一半，确认不走弱后再补第二笔。`,
+      stop: `较竞价参考价 -2%（约 ${stop}）为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行。`,
+      take: `先到 ${firstTake} 附近卖出计划仓位一半，再到 ${secondTake} 附近继续减仓；封板可持有，开板后回封失败则清仓。`,
+      abort: `板块明显转弱、量价背离、跌破开盘价后不能快速收回，或 9:45 前始终站不上分时均价，全部放弃，不补仓。`
+    };
+  }
   function timeText(t) {
     const n = Number(t);
     if (!Number.isFinite(n)) return '--';
@@ -1102,6 +1206,14 @@ footer p{margin:3px 0}
       $('verdict').textContent = '正在筛选';
       $('verdictSub').textContent = '09:25快照完成后自动锁定，失败会继续重试。';
     }
+  }
+
+  function setProgress(action, detail) {
+    if (!state.loading) return;
+    $('selectBtn').disabled = true;
+    $('selectBtn').textContent = '筛选中…';
+    $('actionHint').textContent = action;
+    if (detail) $('verdictSub').textContent = detail;
   }
 
   function saveLock(data) {
@@ -1171,18 +1283,24 @@ footer p{margin:3px 0}
     try {
       let data = null;
       try {
-        const rec = await archiveRecordFallback();
-        data = rec ? await modelFromArchive(rec) : null;
-        if (!data) {
-          const pool = await candidatePool();
-          const codes = pool.rows.map((x) => ztCode(x));
-          const qs = await quotes(codes);
-          const coverage = quoteCoverage(qs, codes);
-          if (coverage < .95) throw new Error(`竞价字段覆盖 ${(coverage * 100).toFixed(1)}%，未达到95%`);
-          data = await buildModel(pool, qs);
+        setProgress('读取最近交易日涨停池…', '优先读取实时行情，陈旧共享快照只在实时数据失败时使用。');
+        const pool = await candidatePool();
+        const codes = quoteCandidateCodes(pool);
+        if (!codes.length) throw new Error('候选股票代码为空');
+        const stable = await collectStableQuotes(codes, (p) => {
+          const total = Math.max(1, Number(p.total) || 1);
+          const ready = Math.max(0, Math.min(total, Number(p.ready) || 0));
+          const pct = Math.round(ready / total * 100);
+          setProgress(`补采09:25竞价 ${pct}%`, `第 ${p.attempt}/3 轮读取中；只请求实际参与评分的候选。`);
+        });
+        if (stable.coverage < .95) {
+          throw new Error(`竞价字段完整度 ${(stable.coverage * 100).toFixed(1)}%，仍缺 ${stable.missing} 只`);
         }
+        setProgress('数据已齐，正在评分…', `竞价完整度 ${(stable.coverage * 100).toFixed(1)}%，开始过滤和排名。`);
+        data = await buildModel(pool, stable.quotes);
       } catch (liveError) {
-        const rec = await archiveRecordFallback();
+        setProgress('实时数据未齐，检查共享快照…', '共享快照只作为备用，不作为收盘价替代。');
+        const rec = await archiveRecordFallback(2500);
         data = rec ? await modelFromArchive(rec) : null;
         if (!data) throw liveError;
       }
@@ -1194,12 +1312,12 @@ footer p{margin:3px 0}
     } catch (e) {
       $('phaseTag').textContent = '等待重试';
       $('verdict').textContent = '本轮未生成优选';
-      $('verdictSub').textContent = '数据源暂不可用：' + e.message;
+      $('verdictSub').textContent = `数据尚未完整：${e.message}。5秒后自动补采，不会用残缺数据出榜。`;
       $('selectBtn').disabled = false;
-      $('selectBtn').textContent = '重新筛选';
-      $('actionHint').textContent = '系统将继续自动重试';
+      $('selectBtn').textContent = '立即补采';
+      $('actionHint').textContent = '5秒后自动补采，也可点击立即重试';
       $('footStatus').textContent = '本轮失败 · 不生成残缺榜单';
-      state.retryAt = Date.now() + 15000;
+      state.retryAt = Date.now() + 5000;
     } finally {
       state.loading = false;
       document.body.classList.remove('loading');
@@ -1211,7 +1329,7 @@ footer p{margin:3px 0}
     state.sharedLoading = true;
     state.sharedCheckAt = Date.now() + 60000;
     try {
-      const rec = await archiveRecordFallback();
+      const rec = await archiveRecordFallback(2500);
       const shared = rec ? await modelFromArchive(rec) : null;
       if (!shared) return;
       state.data = shared;
@@ -1253,6 +1371,10 @@ footer p{margin:3px 0}
     } else if (!state.locked && sec < 33902) {
       $('selectBtn').disabled = true;
       $('selectBtn').textContent = '等待09:25';
+    } else if (!state.locked && !state.loading && Date.now() < state.retryAt) {
+      $('selectBtn').disabled = false;
+      $('selectBtn').textContent = '立即补采';
+      $('actionHint').textContent = `${Math.max(1, Math.ceil((state.retryAt - Date.now()) / 1000))}秒后自动补采`;
     } else if (!state.locked && !state.loading) {
       $('selectBtn').disabled = false;
       $('selectBtn').textContent = '一键选股';
@@ -1290,7 +1412,7 @@ footer p{margin:3px 0}
     tick();
     setInterval(tick, 1000);
     try {
-      const records = await loadArchiveRecords(5000);
+      const records = await loadArchiveRecords(1500);
       const rec = currentArchiveRecord(records);
       const shared = rec ? await modelFromArchive(rec) : null;
       const saved = shared || loadLock();
