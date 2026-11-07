@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-06-auction-sector-badge-v17">
+  <meta name="apanel-build" content="2026-11-07-auction-history-snapshot-v18">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -372,16 +372,16 @@ footer p{margin:3px 0}
     </section>
 
     <details class="fold candidate-pool-fold" open>
-      <summary><span>今日涨停优选候选 · 下一交易日参考</span><b id="nextCandidateCount">等待数据</b></summary>
-      <p class="source-note"><b>筛选口径：</b>板块名称取自东方财富行业板块；取今日涨停池，排除创业板、科创板、北交所和 ST，按连板高度、首封时间排序。</p>
+      <summary><span id="nextCandidateTitle">涨停优选候选 · 下一交易日参考</span><b id="nextCandidateCount">等待数据</b></summary>
+      <p class="source-note" id="nextCandidateNote"><b>筛选口径：</b>板块名称取自东方财富行业板块；排除创业板、科创板、北交所和 ST。</p>
       <div id="nextCandidateList" class="candidate-board">
         <div class="empty-state">收盘后自动整理今日主板涨停候选。</div>
       </div>
     </details>
 
     <details class="fold ladder-fold">
-      <summary><span>今日连板池</span><b id="ladderCount">等待数据</b></summary>
-      <p class="source-note"><b>口径说明：</b>板块名称取自东方财富行业板块；同板块按连板高度、首封时间、成交额排序，第1名为龙头。连板池记录今天首次封板时间，昨日优选卡中的“昨日首封”记录前一交易日首次封板时间。</p>
+      <summary><span id="ladderTitle">连板池</span><b id="ladderCount">等待数据</b></summary>
+      <p class="source-note" id="ladderNote"><b>口径说明：</b>板块名称取自东方财富行业板块；第 1 名为龙头。</p>
       <div id="ladderList" class="ladder-pool">
         <div class="empty-state">盘中读取今日涨停梯队，15:00后转为收盘定稿。</div>
       </div>
@@ -391,7 +391,7 @@ footer p{margin:3px 0}
       <summary><span>候选评分明细</span><b id="candidateCount">0只</b></summary>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>序</th><th>标的</th><th>今收</th><th>板块 / 阶段</th><th>竞价</th><th>最终分</th><th>状态</th></tr></thead>
+          <thead><tr><th>序</th><th>标的</th><th id="finalPctHeader">收盘</th><th>板块 / 阶段</th><th>竞价</th><th>最终分</th><th>状态</th></tr></thead>
           <tbody id="candidateBody"><tr><td colspan="6" class="empty">等待数据</td></tr></tbody>
         </table>
       </div>
@@ -439,11 +439,12 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v17-20261106-sector-badge';
+  const VERSION = 'auction-v18-20261107-history-snapshot';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
   const NEXT_CANDIDATE_KEY = 'auction_lite_next_candidates_v1';
+  const MARKET_SNAPSHOT_KEY = 'auction_lite_market_snapshots_v1';
   const LEGACY_SELECTIONS = {
     '20261105': [
       {
@@ -463,6 +464,7 @@ footer p{margin:3px 0}
     sharedLoading: false, booting: false, data: null, activeDay: '',
     previous: null, archiveRecords: [], previousQuoteAt: 0,
     marketPool: null, marketPoolAt: 0, marketPoolLoading: false,
+    marketFinalAt: 0, marketFinalLoading: false,
     closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {}
   };
 
@@ -511,19 +513,26 @@ footer p{margin:3px 0}
     if ($('previousWhen')) $('previousWhen').textContent = `上一交易日 ${previousText} 收盘 · 今日 ${nowText}`;
     if ($('todayWhen')) $('todayWhen').textContent = `今日 ${nowText}`;
   }
+  function marketDay() {
+    return state.marketPool?.day || state.data?.day || priorTradingDay();
+  }
+  function marketCloseLabel(day = marketDay()) {
+    const text = String(day || '');
+    return text.length === 8 ? `${text.slice(4, 6)}-${text.slice(6)}收盘` : '收盘';
+  }
   function finalPctClass(value) {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? 'up' : Number.isFinite(n) && n < 0 ? 'down' : '';
   }
-  function finalPctFor(code, fallback) {
-    const q = state.finalQuotes[String(code || '')];
+  function finalPctFor(code, fallback, day = marketDay()) {
+    const q = state.finalQuotes[`${day}:${String(code || '')}`];
     const qValue = q ? Number(q.pct) : NaN;
     const fallbackValue = fallback == null || fallback === '' ? NaN : Number(fallback);
     const value = Number.isFinite(qValue) ? qValue : fallbackValue;
     return Number.isFinite(value) ? value : null;
   }
-  function finalPctMarkup(code, fallback, prefix = '今收') {
-    const value = finalPctFor(code, fallback);
+  function finalPctMarkup(code, fallback, prefix = '今收', day = marketDay()) {
+    const value = finalPctFor(code, fallback, day);
     return value == null ? `<span class="final-pct">${prefix} --</span>` :
       `<span class="final-pct ${finalPctClass(value)}">${prefix} ${sign(value)}%</span>`;
   }
@@ -849,6 +858,57 @@ footer p{margin:3px 0}
     } catch (_) {}
   }
 
+  function loadMarketSnapshots() {
+    try {
+      const value = JSON.parse(localStorage.getItem(MARKET_SNAPSHOT_KEY) || '{}');
+      return value && typeof value === 'object' ? value : {};
+    } catch (_) { return {}; }
+  }
+
+  function saveMarketSnapshot(pool) {
+    if (!pool?.day || !Array.isArray(pool.rows) || !pool.rows.length) return;
+    try {
+      const stored = loadMarketSnapshots();
+      stored[pool.day] = {
+        day: pool.day,
+        updatedAt: pool.updatedAt || clockText(),
+        final: Boolean(pool.final),
+        rows: pool.rows.map((x) => ({
+          ...x,
+          finalPct: finalPctFor(x.code, x.finalPct, pool.day),
+          finalPrice: numOrNull(state.finalQuotes[`${pool.day}:${x.code}`]?.price ?? x.finalPrice)
+        }))
+      };
+      const keep = Object.values(stored)
+        .filter((x) => x && /^\d{8}$/.test(String(x.day)) && Array.isArray(x.rows))
+        .sort((a, b) => String(b.day).localeCompare(String(a.day)))
+        .slice(0, 20);
+      localStorage.setItem(MARKET_SNAPSHOT_KEY, JSON.stringify(Object.fromEntries(keep.map((x) => [x.day, x]))));
+    } catch (_) {}
+  }
+
+  function restoreLatestMarketSnapshot() {
+    const today = ymdOffset(0);
+    const latest = Object.values(loadMarketSnapshots())
+      .filter((x) => x && String(x.day) <= today && Array.isArray(x.rows) && x.rows.length)
+      .sort((a, b) => String(b.day).localeCompare(String(a.day)))[0];
+    if (!latest) return false;
+    state.marketPool = {
+      day: latest.day,
+      updatedAt: latest.updatedAt || '',
+      final: Boolean(latest.final),
+      rows: latest.rows
+    };
+    state.finalQuotes = {};
+    latest.rows.forEach((x) => {
+      if (Number.isFinite(Number(x.finalPct))) {
+        state.finalQuotes[`${latest.day}:${x.code}`] = { pct: Number(x.finalPct), price: numOrNull(x.finalPrice) };
+      }
+    });
+    renderTodayMarket();
+    return true;
+  }
+
   function priorCandidateSelection() {
     const today = ymdOffset(0);
     return Object.values(loadCandidateHistory())
@@ -933,9 +993,9 @@ footer p{margin:3px 0}
     return boardDowngraded(code) ? 19.5 : 9.5;
   }
 
-  function finalQuote(q) {
+  function finalQuote(q, day = ymdOffset(0)) {
     const m = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(q?.time || ''));
-    if (!m || m[1] !== ymdOffset(0)) return false;
+    if (!m || m[1] !== day) return false;
     return Number(m[2]) * 3600 + Number(m[3]) * 60 + Number(m[4]) >= 54000;
   }
 
@@ -1312,6 +1372,8 @@ footer p{margin:3px 0}
     if (!d) return;
     const reviewed = (d.picks || []).filter((p) => p.closeStatus && Number.isFinite(Number(p.closePct)));
     const closed = reviewed.filter((p) => p.advanced).length;
+    const closeLabel = marketCloseLabel();
+    if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     $('dateLine').textContent = dateText();
     $('phaseTag').textContent = '竞价已锁定';
     $('verdict').textContent = d.picks.length
@@ -1389,7 +1451,7 @@ footer p{margin:3px 0}
       <tr>
         <td>${c.downgraded ? '降级' : i + 1}</td>
         <td><b>${esc(c.name)}</b><small>${esc(c.code.slice(2))}</small></td>
-        <td>${finalPctMarkup(c.code,c.finalPct)}</td>
+        <td>${finalPctMarkup(c.code,c.finalPct,closeLabel,d.day)}</td>
         <td><b>${esc(c.sector)}</b><small>${esc(stage(c.height))} · <span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span></small></td>
         <td>${sign(c.gap)}%</td>
         <td><b>${fmt(c.total, 1)}</b></td>
@@ -1427,12 +1489,22 @@ footer p{margin:3px 0}
     const list = $('nextCandidateList');
     const ladder = $('ladderList');
     if (!pool || !Array.isArray(pool.rows) || !pool.rows.length) {
+      $('nextCandidateTitle').textContent = '涨停优选候选 · 下一交易日参考';
+      $('ladderTitle').textContent = '连板池';
       $('nextCandidateCount').textContent = '等待数据';
       $('ladderCount').textContent = '等待数据';
       list.innerHTML = '<div class="empty-state">盘中涨停池生成后自动更新。</div>';
       ladder.innerHTML = '<div class="empty-state">盘中读取今日涨停梯队，15:00后转为收盘定稿。</div>';
       return;
     }
+    const dayLabel = displayDay(pool.day);
+    const closeLabel = marketCloseLabel(pool.day);
+    const updateLabel = pool.updatedAt ? ` · 更新 ${pool.updatedAt}` : '';
+    $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
+    $('ladderTitle').textContent = `${dayLabel} 连板池`;
+    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；板块名称取自东方财富行业板块；排除创业板、科创板、北交所和 ST。`;
+    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；板块名称取自东方财富行业板块；同板块按连板高度、首封时间、成交额排序，第1名为龙头。`;
+    if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
       b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
@@ -1441,7 +1513,7 @@ footer p{margin:3px 0}
     $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => `
       <div class="candidate-row">
-        <div><strong>${esc(x.name)}</strong><small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>${finalPctMarkup(x.code,null)}</div>
+        <div><strong>${esc(x.name)}</strong><small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>${finalPctMarkup(x.code,x.finalPct,closeLabel)}</div>
         <b>${x.boards}板</b>
         <time>首封 ${timeText(x.firstTime)}</time>
         <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</span> · ${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
@@ -1450,7 +1522,7 @@ footer p{margin:3px 0}
     const groups = {};
     pool.rows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
     const tiers = Object.keys(groups).map(Number).sort((a, b) => b - a);
-    $('ladderCount').textContent = `${pool.rows.length}只 · ${pool.final ? '收盘定稿' : '盘中更新'}`;
+    $('ladderCount').textContent = `${pool.rows.length}只 · ${pool.final ? '收盘定稿' : '盘中更新'}${updateLabel}`;
     ladder.innerHTML = tiers.map((height) => `
       <article class="ladder-tier">
         <strong>${height}板</strong>
@@ -1460,7 +1532,7 @@ footer p{margin:3px 0}
           <div class="ladder-chip ${x.downgraded ? 'board20' : ''}">
             <b>${esc(x.name)} <small>${esc(x.code.slice(2))}</small></b>
             <small>板块：${esc(x.sector)} · 首封 ${timeText(x.firstTime)}</small>
-            ${finalPctMarkup(x.code,null)}
+            ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
             <small class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</small>
           </div>`).join('')}</div>
       </article>`).join('');
@@ -1471,23 +1543,72 @@ footer p{margin:3px 0}
     const now = bjNow();
     const day = now.getDay();
     const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-    if (day < 1 || day > 5 || sec < 34200) return;
-    if (!force && Date.now() - state.marketPoolAt < 60000) return;
+    const targetDay = day >= 1 && day <= 5 && sec >= 34200 ? ymdOffset(0) : priorTradingDay();
+    const refreshGap = state.marketPool?.day === targetDay && state.marketPool.final ? 600000 : 60000;
+    if (!force && Date.now() - state.marketPoolAt < refreshGap) return;
     state.marketPoolAt = Date.now();
     state.marketPoolLoading = true;
     try {
-      const raw = await poolOf(API.zt, ymdOffset(0), 500);
+      const raw = await poolOf(API.zt, targetDay, 500);
       const rows = normalizeLimitRows(raw);
-      if (rows.length && String(raw?.qdate || ymdOffset(0)) === ymdOffset(0)) {
-        state.marketPool = { day: ymdOffset(0), rows, final: sec >= 54000 };
+      const resultDay = String(raw?.qdate || targetDay);
+      if (rows.length && resultDay <= ymdOffset(0)) {
+        const oldByName = new Map((state.marketPool?.day === resultDay ? state.marketPool.rows : [])
+          .map((x) => [x.code, x]));
+        rows.forEach((x) => {
+          const old = oldByName.get(x.code);
+          if (old) {
+            if (Number.isFinite(Number(old.finalPct))) x.finalPct = Number(old.finalPct);
+            if (Number.isFinite(Number(old.finalPrice))) x.finalPrice = Number(old.finalPrice);
+          }
+        });
+        const finalDay = resultDay < ymdOffset(0) || sec >= 54000;
+        state.marketPool = { day: resultDay, rows, final: finalDay, updatedAt: clockText() };
+        saveCandidateHistory(resultDay, rows.filter((x) => mainBoardEligible(x.code, x.name)));
+        saveMarketSnapshot(state.marketPool);
         renderTodayMarket();
-        saveCandidateHistory(ymdOffset(0), rows.filter((x) => mainBoardEligible(x.code, x.name)));
-        if (sec >= 54000) refreshPicksClose(true);
+        refreshMarketFinalQuotes(true);
+        if (resultDay === ymdOffset(0) && sec >= 54000) refreshPicksClose(true);
       }
     } catch (_) {
       renderTodayMarket();
     } finally {
       state.marketPoolLoading = false;
+    }
+  }
+
+  async function refreshMarketFinalQuotes(force = false) {
+    const pool = state.marketPool;
+    if (!pool?.rows?.length || state.marketFinalLoading) return;
+    const today = ymdOffset(0);
+    const now = bjNow();
+    const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const isFinalDay = pool.day < today || (pool.day === today && sec >= 54000);
+    if (!isFinalDay) return;
+    if (!force && Date.now() < state.marketFinalAt) return;
+    state.marketFinalAt = Date.now() + 60000;
+    state.marketFinalLoading = true;
+    try {
+      const qs = await quotes(pool.rows.map((x) => x.code));
+      let changed = false;
+      pool.rows.forEach((row) => {
+        const quote = qs[row.code];
+        if (!finalQuote(quote, pool.day)) return;
+        row.finalPct = Number(quote.pct);
+        row.finalPrice = Number(quote.price);
+        state.finalQuotes[`${pool.day}:${row.code}`] = quote;
+        changed = true;
+      });
+      if (changed) {
+        pool.final = true;
+        saveMarketSnapshot(pool);
+        renderTodayMarket();
+        state.marketFinalAt = Date.now() + 120000;
+      }
+    } catch (_) {
+      state.marketFinalAt = Date.now() + 15000;
+    } finally {
+      state.marketFinalLoading = false;
     }
   }
 
@@ -1511,18 +1632,18 @@ footer p{margin:3px 0}
       let changed = false;
       Object.entries(qs).forEach(([code, quote]) => {
         if (finalQuote(quote)) {
-          state.finalQuotes[code] = quote;
+          state.finalQuotes[`${ymdOffset(0)}:${code}`] = quote;
           changed = true;
         }
       });
       (data.all || []).forEach((pick) => {
-        const quote = state.finalQuotes[pick.code];
+        const quote = state.finalQuotes[`${ymdOffset(0)}:${pick.code}`];
         if (!quote) return;
         pick.finalPrice = Number(quote.price);
         pick.finalPct = Number(quote.pct);
       });
       data.picks.forEach((pick) => {
-        const review = closeEvaluation(pick, state.finalQuotes[pick.code], data);
+        const review = closeEvaluation(pick, state.finalQuotes[`${ymdOffset(0)}:${pick.code}`], data);
         if (review) {
           Object.assign(pick, review);
           changed = true;
@@ -1532,6 +1653,7 @@ footer p{margin:3px 0}
         saveLock(data);
         render();
         renderTodayMarket();
+        saveMarketSnapshot(state.marketPool);
         state.previous = resolvePreviousSelection();
         renderPreviousSelection();
         state.closeReviewAt = Date.now() + 120000;
@@ -1765,7 +1887,11 @@ footer p{margin:3px 0}
         Date.now() - state.previousQuoteAt >= 30000) {
       refreshPreviousQuotes(false);
     }
-    if (day >= 1 && day <= 5 && sec >= 34200) {
+    const weekend = day < 1 || day > 5;
+    const needMarket = weekend
+      ? (!state.marketPool?.rows?.length || state.marketPool.day !== priorTradingDay())
+      : (sec >= 34200 || !state.marketPool?.rows?.length);
+    if (needMarket) {
       refreshTodayMarket(false);
     }
     if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 54000) {
@@ -1793,6 +1919,7 @@ footer p{margin:3px 0}
     state.booting = true;
     state.previous = resolvePreviousSelection();
     renderPreviousSelection();
+    restoreLatestMarketSnapshot();
     $('dateLine').textContent = dateText();
     $('selectBtn').disabled = true;
     $('selectBtn').textContent = '同步快照…';
@@ -1808,7 +1935,15 @@ footer p{margin:3px 0}
         return;
       }
       if (state.locked) {
-        toast('今日结果已锁定，不重新改榜');
+        refreshTodayMarket(true);
+        refreshPicksClose(true);
+        toast('行情与收盘数据已刷新，不重新改榜');
+        return;
+      }
+      const now = bjNow();
+      if (now.getDay() < 1 || now.getDay() > 5) {
+        refreshTodayMarket(true);
+        toast('已刷新最近交易日数据');
         return;
       }
       runSelection(true);
