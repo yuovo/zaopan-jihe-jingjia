@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-07-auction-history-snapshot-v18">
+  <meta name="apanel-build" content="2026-11-07-auction-candidate-score-v19">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -187,6 +187,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .candidate-row time{align-self:center;color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace}
 .candidate-row em{align-self:center;justify-self:end;color:#9a8c77;font-size:9.5px;font-style:normal}
 .candidate-row .final-pct{display:block;margin-top:4px}
+.candidate-score-line{margin-top:5px;color:#9a6a2b;font:700 10px/1.3 Consolas,monospace}
 .final-pct{font:700 9.5px/1.3 Consolas,monospace;white-space:nowrap}
 .final-pct.up{color:var(--red)}.final-pct.down{color:var(--teal)}
 .sector-rank{color:#7e6846}
@@ -439,7 +440,7 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v18-20261107-history-snapshot';
+  const VERSION = 'auction-v19-20261107-candidate-score';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -893,6 +894,7 @@ footer p{margin:3px 0}
       .filter((x) => x && String(x.day) <= today && Array.isArray(x.rows) && x.rows.length)
       .sort((a, b) => String(b.day).localeCompare(String(a.day)))[0];
     if (!latest) return false;
+    latest.rows = rankLimitRows(latest.rows);
     state.marketPool = {
       day: latest.day,
       updatedAt: latest.updatedAt || '',
@@ -1459,6 +1461,27 @@ footer p{margin:3px 0}
       </tr>`).join('') : '<tr><td colspan="7" class="empty">没有达到门槛的股票</td></tr>';
   }
 
+  function rankLimitRows(rows) {
+    const maxHeight = rows.reduce((max, x) => Math.max(max, Number(x.boards) || 1), 1);
+    const groups = {};
+    rows.forEach((x) => (groups[x.sector] = groups[x.sector] || []).push(x));
+    Object.values(groups).forEach((group) => {
+      group.sort((a, b) =>
+        b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
+      );
+      group.forEach((x, i) => {
+        x.sectorRank = i + 1;
+        x.sectorLeader = i === 0;
+        const sectorStrength = group.length >= 3 ? 6 : group.length === 2 ? 4 : 0;
+        const leaderBonus = x.sectorLeader ? 4 : 0;
+        const score = 48 + scoreC(x.boards, maxHeight) + scoreD(x.firstTime) +
+          scoreE(x.breaks) + Math.min(10, sectorStrength + leaderBonus);
+        x.candidateScore = Math.round(clamp(score, 0, 100) * 10) / 10;
+      });
+    });
+    return rows;
+  }
+
   function normalizeLimitRows(pool) {
     const rows = (pool?.pool || pool?.rows || []).map((x) => ({
       code: ztCode(x),
@@ -1470,18 +1493,7 @@ footer p{margin:3px 0}
       amount: Number(x.amount) || 0,
       downgraded: boardDowngraded(ztCode(x))
     })).filter((x) => x.code && x.name);
-    const groups = {};
-    rows.forEach((x) => (groups[x.sector] = groups[x.sector] || []).push(x));
-    Object.values(groups).forEach((group) => {
-      group.sort((a, b) =>
-        b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
-      );
-      group.forEach((x, i) => {
-        x.sectorRank = i + 1;
-        x.sectorLeader = i === 0;
-      });
-    });
-    return rows;
+    return rankLimitRows(rows);
   }
 
   function renderTodayMarket() {
@@ -1502,18 +1514,24 @@ footer p{margin:3px 0}
     const updateLabel = pool.updatedAt ? ` · 更新 ${pool.updatedAt}` : '';
     $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
     $('ladderTitle').textContent = `${dayLabel} 连板池`;
-    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；板块名称取自东方财富行业板块；排除创业板、科创板、北交所和 ST。`;
+    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；候选预评分由连板高度、首封时间、开板次数、板块强度和龙头加成计算，不含次日竞价分；排除创业板、科创板、北交所和 ST。`;
     $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；板块名称取自东方财富行业板块；同板块按连板高度、首封时间、成交额排序，第1名为龙头。`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
+      (Number(b.candidateScore) || 0) - (Number(a.candidateScore) || 0) ||
       b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
     );
     const shown = ranked.slice(0, 20);
     $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => `
       <div class="candidate-row">
-        <div><strong>${esc(x.name)}</strong><small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>${finalPctMarkup(x.code,x.finalPct,closeLabel)}</div>
+        <div>
+          <strong>${esc(x.name)}</strong>
+          <small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>
+          ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
+          <div class="candidate-score-line">候选预评分 ${fmt(x.candidateScore, 1)}</div>
+        </div>
         <b>${x.boards}板</b>
         <time>首封 ${timeText(x.firstTime)}</time>
         <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</span> · ${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
