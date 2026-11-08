@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-09-mobile-readable-v21">
+  <meta name="apanel-build" content="2026-11-09-mobile-tiles-hold-plan-v22">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -176,16 +176,18 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .source-note{margin:0;padding:10px 15px;border-top:1px solid var(--line);background:#f7f2e9;color:#6e746f;font-size:10.5px;line-height:1.65}
 .source-note b{color:#5d513f}
 .candidate-board{padding:12px 14px 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.candidate-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:5px 10px;padding:10px 11px;border:1px solid #e2d8c8;border-radius:11px;background:#fffdf8}
-.candidate-row strong{display:block;color:var(--forest);font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.candidate-row{display:flex;flex-direction:column;gap:5px;padding:11px 12px;border:1px solid #e2d8c8;border-radius:12px;background:#fffdf8}
+.candidate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:7px}
+.candidate-row strong{display:block;min-width:0;color:var(--forest);font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .candidate-row small{display:block;margin-top:3px;color:#8b928e;font:600 9px/1.3 Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.candidate-row>b{
+.candidate-head>b{
   display:inline-flex;align-items:center;justify-content:center;justify-self:end;align-self:start;
   min-width:46px;height:24px;padding:0 9px;border-radius:999px;
   background:var(--amber-soft);color:#8d5a20;font:700 11px/1 Consolas,monospace;white-space:nowrap;
 }
-.candidate-row time{align-self:center;color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace}
-.candidate-row em{align-self:center;justify-self:end;color:#9a8c77;font-size:9.5px;font-style:normal}
+.candidate-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:auto;padding-top:7px;border-top:1px solid #eee6da}
+.candidate-row time{color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace;white-space:nowrap}
+.candidate-row em{color:#9a8c77;font-size:9.5px;font-style:normal;text-align:right}
 .candidate-row .final-pct{display:block;margin-top:4px}
 .candidate-score-line{margin-top:5px;color:#9a6a2b;font:700 10px/1.3 Consolas,monospace}
 .final-pct{font:700 9.5px/1.3 Consolas,monospace;white-space:nowrap}
@@ -218,6 +220,19 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .track-price b{display:block;margin-top:4px;color:var(--ink);font:700 12px/1.35 Consolas,monospace}
 .track-plan{margin-top:11px;padding:10px 11px;border-radius:10px;background:#fbf3e6;color:#73582e;font-size:11.5px;line-height:1.65}
 .track-plan b{color:#543d1e}
+.hold-plan{margin-top:11px;padding:12px;border:1px solid #c9ded6;border-radius:12px;background:linear-gradient(145deg,#f4faf7,#edf6f2)}
+.hold-plan-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.hold-plan-head span{color:#356a5c;font:700 9.5px/1 Consolas,monospace;letter-spacing:.75px}
+.hold-plan-head b{color:var(--forest);font-size:11px}
+.hold-levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.hold-level{min-width:0;padding:8px;border:1px solid #d5e5df;border-radius:9px;background:rgba(255,255,255,.72)}
+.hold-level small{display:block;color:#71847d;font-size:9px;line-height:1.3}
+.hold-level strong{display:block;margin-top:4px;color:var(--forest);font:700 15px/1.25 Consolas,monospace}
+.hold-level span{display:block;margin-top:3px;color:#788982;font-size:9px;line-height:1.35}
+.hold-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:9px 0 0;padding:0;list-style:none}
+.hold-rules li{padding:8px 9px;border-radius:9px;background:#fff;color:#566963;font-size:10px;line-height:1.55}
+.hold-rules b{display:block;margin-bottom:2px;color:#296555;font-size:10.5px}
+.hold-note{margin:8px 0 0;color:#77877f;font-size:9.5px;line-height:1.5}
 
 .fold{margin-top:18px;border:1px solid var(--line);border-radius:15px;background:rgba(255,253,248,.9);overflow:hidden}
 .fold summary{
@@ -376,31 +391,30 @@ footer p{margin:3px 0}
   th,td{padding:11px 9px}
   th{font-size:11.5px}
   td small{font-size:11px;line-height:1.45}
-  .candidate-board{padding:10px;gap:10px}
+  .candidate-board{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:8px}
   .candidate-row{
-    grid-template-columns:minmax(0,1fr) auto;
-    grid-template-areas:"candidate board" "time time" "rank rank";
-    gap:8px 12px;padding:13px 12px;border-radius:12px;
+    display:flex;flex-direction:column;gap:5px;
+    min-height:180px;height:auto;padding:11px;border-radius:12px;overflow:hidden;
   }
-  .candidate-row>div{grid-area:candidate;min-width:0}
-  .candidate-row>b{
-    grid-area:board;min-width:52px;height:28px;padding:0 11px;
-    border-radius:999px;font-size:12.5px;justify-self:end;
+  .candidate-head{gap:5px}
+  .candidate-head>b{
+    min-width:48px;height:27px;padding:0 9px;
+    border-radius:999px;font-size:12px;flex:none;
   }
-  .candidate-row strong{font-size:15.5px;line-height:1.4;white-space:normal}
+  .candidate-row strong{
+    display:-webkit-box;font-size:15px;line-height:1.3;
+    white-space:normal;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  }
   .candidate-row small{
-    margin-top:4px;font-size:11.5px;line-height:1.5;
-    white-space:normal;overflow:visible;text-overflow:clip;
+    display:-webkit-box;margin-top:3px;font-size:11.5px;line-height:1.42;
+    white-space:normal;overflow:hidden;text-overflow:clip;
+    -webkit-box-orient:vertical;-webkit-line-clamp:2;
   }
-  .candidate-row time{
-    grid-area:time;align-self:center;justify-self:start;font-size:11.5px;line-height:1.5;white-space:nowrap;
-  }
-  .candidate-row em{
-    grid-area:rank;align-self:center;justify-self:start;font-size:11.5px;
-    line-height:1.5;text-align:left;max-width:100%;padding-top:1px;
-  }
-  .candidate-row .final-pct{margin-top:5px;font-size:11.5px}
-  .candidate-score-line{margin-top:5px;font-size:11.5px;line-height:1.45}
+  .candidate-foot{display:grid;grid-template-columns:1fr;gap:3px;padding-top:6px}
+  .candidate-row time{font-size:11.5px;line-height:1.4;white-space:nowrap}
+  .candidate-row em{font-size:11.5px;line-height:1.42;text-align:left}
+  .candidate-row .final-pct{margin-top:4px;font-size:11.5px}
+  .candidate-score-line{margin-top:4px;font-size:11.5px;line-height:1.4}
   .final-pct{font-size:11.5px;line-height:1.45}
   .ladder-pool{padding:11px}
   .ladder-tier{
@@ -424,6 +438,19 @@ footer p{margin:3px 0}
   .discipline{font-size:12.5px;line-height:1.75}
   .sell-script{padding:0 13px 14px}
   .sell-script p{font-size:13px;line-height:1.7}
+  .hold-plan{padding:13px;border-radius:13px}
+  .hold-plan-head{margin-bottom:10px}
+  .hold-plan-head span{font-size:10.5px}
+  .hold-plan-head b{font-size:12.5px}
+  .hold-levels{gap:6px}
+  .hold-level{padding:9px 7px}
+  .hold-level small{font-size:10.5px}
+  .hold-level strong{font-size:16px}
+  .hold-level span{font-size:10px;line-height:1.4}
+  .hold-rules{gap:8px;margin-top:10px}
+  .hold-rules li{padding:9px;font-size:11.5px;line-height:1.6}
+  .hold-rules b{font-size:12px}
+  .hold-note{font-size:11px;line-height:1.55}
   .empty-state,.empty{font-size:14px;line-height:1.65}
   footer{font-size:12px;line-height:1.75}
   .toast{font-size:13.5px;padding:11px 15px}
@@ -577,7 +604,7 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v21-20261109-mobile-readable';
+  const VERSION = 'auction-v22-20261109-mobile-tiles-hold-plan';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -1187,6 +1214,23 @@ footer p{margin:3px 0}
     };
   }
 
+  function holdingPlanOf(pick) {
+    const ref = Number(pick?.price);
+    if (!(ref > 0)) {
+      return {
+        valid: false, stop: '--', firstTake: '--', secondTake: '--',
+        stopText: '参考价缺失，先不要按计划价执行。'
+      };
+    }
+    return {
+      valid: true,
+      stop: price(ref * .98),
+      firstTake: price(ref * 1.04),
+      secondTake: price(ref * 1.07),
+      stopText: `参考成本 ${price(ref)}；实盘以实际成交成本校正。`
+    };
+  }
+
   function renderPreviousSelection() {
     const previous = state.previous;
     const box = $('previousPicks');
@@ -1211,6 +1255,7 @@ footer p{margin:3px 0}
         : '等待今日09:25竞价；到点后自动更新高开、平开、低开的卖出处理。');
     box.innerHTML = previous.picks.map((p) => {
       const plan = trackingAdvice(p.trackQuote);
+      const hold = holdingPlanOf(p);
       return `
         <article class="pick-card track-card">
           <div class="pick-top">
@@ -1233,6 +1278,21 @@ footer p{margin:3px 0}
               <p class="close-reason">${esc(p.failureReason)}</p>
             </div>` : ''}
           <div class="track-plan"><b>今日处理：</b>${esc(plan.text)}</div>
+          <div class="hold-plan">
+            <div class="hold-plan-head"><span>T+1 SHORT-TERM HOLD</span><b>买入后下一交易日执行</b></div>
+            <div class="hold-levels">
+              <div class="hold-level"><small>硬止损</small><strong>${hold.stop}</strong><span>跌破不补仓</span></div>
+              <div class="hold-level"><small>第一止盈</small><strong>${hold.firstTake}</strong><span>先卖一半</span></div>
+              <div class="hold-level"><small>第二止盈</small><strong>${hold.secondTake}</strong><span>再减仓或封板持有</span></div>
+            </div>
+            <ul class="hold-rules">
+              <li><b>高开</b>竞价高开超过 3% 不追，先卖一半；剩余跌破开盘价或分时均价，10 分钟不收回即清仓。</li>
+              <li><b>平开 / 小高开</b>9:30–9:45 站稳分时均价可继续持有；跌破均价 15 分钟不收回就退出。</li>
+              <li><b>低开</b>低于参考价 2% 直接止损；低开后 9:45 前不能重新站上参考价，剩余仓位清掉。</li>
+              <li><b>封板与期限</b>封板可持有到次日；开板未回封卖剩余。短线最多跟踪 3 个交易日，不把短线拖成中线。</li>
+            </ul>
+            <p class="hold-note">${hold.stopText}</p>
+          </div>
         </article>`;
     }).join('');
   }
@@ -1673,15 +1733,17 @@ footer p{margin:3px 0}
     $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => `
       <div class="candidate-row">
-        <div>
+        <div class="candidate-head">
           <strong>${esc(x.name)}</strong>
-          <small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>
-          ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
-          <div class="candidate-score-line">候选预评分 ${fmt(x.candidateScore, 1)}</div>
+          <b>${x.boards}板</b>
         </div>
-        <b>${x.boards}板</b>
-        <time>首封 ${timeText(x.firstTime)}</time>
-        <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</span> · ${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
+        <small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>
+        ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
+        <div class="candidate-score-line">候选预评分 ${fmt(x.candidateScore, 1)}</div>
+        <div class="candidate-foot">
+          <time>首封 ${timeText(x.firstTime)}</time>
+          <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</span> · ${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
+        </div>
       </div>`).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
 
     const groups = {};
