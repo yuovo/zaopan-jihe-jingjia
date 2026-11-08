@@ -440,13 +440,23 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v19-20261107-candidate-score';
+  const VERSION = 'auction-v20-20261108-history-sync';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
   const NEXT_CANDIDATE_KEY = 'auction_lite_next_candidates_v1';
   const MARKET_SNAPSHOT_KEY = 'auction_lite_market_snapshots_v1';
   const LEGACY_SELECTIONS = {
+    '20261106': [
+      {
+        code: 'sh603098', name: '森特股份', sector: '专业工程', height: 1,
+        total: 79.8, price: 11.11, gap: 3.16, firstTime: 93558,
+        stage: '1进2', position: '≤5%', rank: 1,
+        closePrice: 10.47, closePct: -2.79, highPct: 7.52,
+        closeStatus: '未触板', advanced: false, candidateAdvanced: true,
+        failureReason: '可能原因：盘中最高 +7.52%，始终未触及涨停价；冲高回落明显，尾盘承接走弱；收盘翻绿，短线资金没有继续承接；市场处于退潮期，连板接力环境偏弱。'
+      }
+    ],
     '20261105': [
       {
         code: 'sh605577', name: '龙版传媒', sector: '出版', height: 3,
