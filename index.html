@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-09-stock-reason-sheets-v23">
+  <meta name="apanel-build" content="2026-11-09-stock-reason-sheets-v24">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -673,7 +673,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v23-20261109-stock-reason-sheets';
+  const VERSION = 'auction-v24-20261109-stock-reason-sheets';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -979,23 +979,24 @@ body.modal-open{overflow:hidden}
       ? `换手${turnover.toFixed(2)}%，抛压释放较充分`
       : turnover > 0
         ? `换手${turnover.toFixed(2)}%，成交活跃度适中`
-        : '换手率字段缺失';
-    const fundText = Number(x.sealAmount) > 0
-      ? `封板资金参考约${formatMoney(x.sealAmount)}`
-      : '封板资金字段缺失';
+        : '';
+    const amountText = Number(x.amount) > 0 ? `成交额约${formatMoney(x.amount)}` : '';
+    const fundText = Number(x.sealAmount) > 0 ? `封板资金参考约${formatMoney(x.sealAmount)}` : '';
+    const liquidityText = [turnoverText, amountText, fundText].filter(Boolean).join('，');
     return {
       brief: `${phase.short}、${x.sectorLeader ? '板块龙头' : `板块第${x.sectorRank}`}、${breaks ? `开板${breaks}次` : '未开板'}，封板结构${x.sectorLeader && breaks <= 1 ? '较强' : '仍需次日确认'}`,
       detail: [
         `${phase.detail}。${heightText}。`,
         `${sectorText}，板块联动为封板提供了合力。`,
-        `${breakText}；${turnoverText}。${fundText}。`
+        `${breakText}${liquidityText ? `；${liquidityText}` : ''}。`
       ],
       facts: [
         ['首封时间', timeText(x.firstTime)],
         ['开板次数', breaks ? `${breaks}次` : '未开板'],
         ['板块地位', `第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}`],
+        ['成交额', formatMoney(x.amount)],
         ['封板资金', formatMoney(x.sealAmount)]
-      ]
+      ].filter(([, value]) => value && value !== '--')
     };
   }
 
