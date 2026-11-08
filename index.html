@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-09-mobile-tiles-hold-plan-v22">
+  <meta name="apanel-build" content="2026-11-09-stock-reason-sheets-v23">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -189,6 +189,16 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .candidate-row time{color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace;white-space:nowrap}
 .candidate-row em{color:#9a8c77;font-size:9.5px;font-style:normal;text-align:right}
 .candidate-row .final-pct{display:block;margin-top:4px}
+.candidate-metrics{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.candidate-metrics .final-pct,.candidate-metrics .candidate-score-line{margin-top:0;white-space:nowrap}
+.candidate-reason-brief{
+  display:-webkit-box;margin:0;color:#465f58;font-size:10.5px;line-height:1.48;
+  overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;
+}
+.candidate-open{display:block;color:#8d5a20;font-size:9.5px;font-weight:700;text-align:right}
+.candidate-row[role="button"],.ladder-chip[role="button"]{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.candidate-row[role="button"]:active,.ladder-chip[role="button"]:active{transform:scale(.985)}
+.candidate-row[role="button"]:focus-visible,.ladder-chip[role="button"]:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .candidate-score-line{margin-top:5px;color:#9a6a2b;font:700 10px/1.3 Consolas,monospace}
 .final-pct{font:700 9.5px/1.3 Consolas,monospace;white-space:nowrap}
 .final-pct.up{color:var(--red)}.final-pct.down{color:var(--teal)}
@@ -203,6 +213,8 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .ladder-chip b{display:block;color:var(--forest);font-size:11.5px}
 .ladder-chip small{display:block;margin-top:3px;color:#7a8580;font-size:9px}
 .ladder-chip .final-pct{display:block;margin-top:4px;font-size:9.5px}
+.ladder-reason-brief{margin:7px 0 0;padding-top:6px;border-top:1px solid #ece4d7;color:#52655e;font-size:9.5px;line-height:1.55}
+.ladder-reason-more{display:block;margin-top:4px;color:#8d5a20;font-size:9px;font-weight:700}
 .ladder-chip.board20{border-color:#b9d5cd;background:#f2faf7}
 .empty-state,.empty{padding:22px;text-align:center;color:#75817c;font-size:12.5px}
 .previous-block{padding:16px;border:1px solid #d7cdbc;border-radius:17px;background:linear-gradient(145deg,#fffdf8,#f7f1e5)}
@@ -259,6 +271,30 @@ td .final-pct{display:block;margin-top:4px}
 .sell-script b{color:#8d5a20}.sell-script span{color:#64716c}
 footer{margin-top:25px;padding:18px 2px 0;border-top:1px solid #ded6c9;color:#84908b;font-size:10.5px;line-height:1.7}
 footer p{margin:3px 0}
+.reason-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:22px}
+.reason-modal[hidden]{display:none}
+.reason-backdrop{position:absolute;inset:0;background:rgba(13,33,29,.52);backdrop-filter:blur(4px)}
+.reason-sheet{
+  position:relative;width:min(620px,100%);max-height:min(82vh,720px);overflow:auto;
+  padding:20px;border:1px solid #d8cbb7;border-radius:20px;background:#fffdf8;
+  box-shadow:0 24px 80px rgba(15,38,32,.28);
+}
+.reason-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.reason-sheet-head h3{margin:6px 0 0;color:var(--forest);font:700 24px/1.25 Georgia,"Songti SC",serif}
+.reason-close{
+  width:38px;height:38px;flex:none;border:1px solid #d9cfbe;border-radius:50%;
+  background:#f7f1e6;color:#53635d;font:400 25px/1 sans-serif;cursor:pointer;
+}
+.reason-lead{margin:13px 0 0;padding:11px 12px;border-radius:11px;background:#eef7f3;color:#315d52;font-size:12.5px;line-height:1.68}
+.reason-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.reason-fact{padding:9px;border:1px solid #e2d8c8;border-radius:10px;background:#faf6ed}
+.reason-fact small{display:block;color:#8b928e;font-size:10px}
+.reason-fact b{display:block;margin-top:4px;color:var(--forest);font:700 13px/1.35 Consolas,monospace}
+.reason-detail{margin-top:13px;padding-top:2px}
+.reason-detail p{margin:8px 0 0;color:#53635e;font-size:12px;line-height:1.75}
+.reason-detail p::before{content:"";display:inline-block;width:5px;height:5px;margin:0 7px 2px 0;border-radius:50%;background:var(--amber)}
+.reason-risk{margin:13px 0 0;padding-top:10px;border-top:1px dashed #ded4c4;color:#8b6a3c;font-size:11px;line-height:1.65}
+body.modal-open{overflow:hidden}
 .toast{position:fixed;left:50%;bottom:22px;z-index:50;max-width:86vw;transform:translate(-50%,20px);opacity:0;pointer-events:none;padding:10px 14px;border-radius:999px;background:#173d35;color:#fff;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);transition:.2s}
 .toast.show{transform:translate(-50%,0);opacity:1}
 .loading .score-orbit{animation:pulse 1.1s ease-in-out infinite alternate}
@@ -394,7 +430,7 @@ footer p{margin:3px 0}
   .candidate-board{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:8px}
   .candidate-row{
     display:flex;flex-direction:column;gap:5px;
-    min-height:180px;height:auto;padding:11px;border-radius:12px;overflow:hidden;
+    min-height:190px;height:auto;padding:11px;border-radius:12px;overflow:hidden;
   }
   .candidate-head{gap:5px}
   .candidate-head>b{
@@ -410,11 +446,15 @@ footer p{margin:3px 0}
     white-space:normal;overflow:hidden;text-overflow:clip;
     -webkit-box-orient:vertical;-webkit-line-clamp:2;
   }
-  .candidate-foot{display:grid;grid-template-columns:1fr;gap:3px;padding-top:6px}
+  .candidate-foot{display:flex;align-items:center;justify-content:space-between;gap:5px;padding-top:6px}
   .candidate-row time{font-size:11.5px;line-height:1.4;white-space:nowrap}
-  .candidate-row em{font-size:11.5px;line-height:1.42;text-align:left}
-  .candidate-row .final-pct{margin-top:4px;font-size:11.5px}
+  .candidate-row em{font-size:11px;line-height:1.35;text-align:right;white-space:nowrap}
+  .candidate-row .final-pct{margin-top:0;font-size:11.5px}
   .candidate-score-line{margin-top:4px;font-size:11.5px;line-height:1.4}
+  .candidate-metrics{margin-top:1px}
+  .candidate-metrics .candidate-score-line{margin-top:0}
+  .candidate-reason-brief{font-size:11.5px;line-height:1.46;-webkit-line-clamp:2}
+  .candidate-open{margin-top:auto;font-size:10.5px;line-height:1.4}
   .final-pct{font-size:11.5px;line-height:1.45}
   .ladder-pool{padding:11px}
   .ladder-tier{
@@ -430,6 +470,8 @@ footer p{margin:3px 0}
   .ladder-chip b{font-size:13.5px;line-height:1.4}
   .ladder-chip small{font-size:11px;line-height:1.48}
   .ladder-chip .final-pct{font-size:11.5px;margin-top:5px}
+  .ladder-reason-brief{font-size:10.8px;line-height:1.52}
+  .ladder-reason-more{font-size:10.5px}
   .rules-grid{gap:10px;padding:0 12px 12px}
   .rules-grid article{padding:14px 12px}
   .rules-grid span{font-size:13px}
@@ -451,6 +493,20 @@ footer p{margin:3px 0}
   .hold-rules li{padding:9px;font-size:11.5px;line-height:1.6}
   .hold-rules b{font-size:12px}
   .hold-note{font-size:11px;line-height:1.55}
+  .reason-modal{align-items:flex-end;padding:0}
+  .reason-sheet{
+    width:100%;max-height:88vh;padding:18px 17px calc(18px + env(safe-area-inset-bottom,0px));
+    border-radius:22px 22px 0 0;
+  }
+  .reason-sheet-head h3{font-size:25px}
+  .reason-close{width:42px;height:42px;font-size:28px}
+  .reason-lead{font-size:13.5px;line-height:1.72}
+  .reason-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .reason-fact{padding:11px 10px}
+  .reason-fact small{font-size:11px}
+  .reason-fact b{font-size:15px}
+  .reason-detail p{font-size:13px;line-height:1.75}
+  .reason-risk{font-size:12px;line-height:1.65}
   .empty-state,.empty{font-size:14px;line-height:1.65}
   footer{font-size:12px;line-height:1.75}
   .toast{font-size:13.5px;padding:11px 15px}
@@ -590,6 +646,19 @@ footer p{margin:3px 0}
     </footer>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="reasonModal" class="reason-modal" hidden>
+    <div id="reasonBackdrop" class="reason-backdrop"></div>
+    <section class="reason-sheet" role="dialog" aria-modal="true" aria-labelledby="reasonTitle">
+      <div class="reason-sheet-head">
+        <div><span id="reasonEyebrow" class="section-label">REASON</span><h3 id="reasonTitle">股票判断</h3></div>
+        <button id="reasonClose" class="reason-close" type="button" aria-label="关闭详情">×</button>
+      </div>
+      <p id="reasonBrief" class="reason-lead"></p>
+      <div id="reasonFacts" class="reason-facts"></div>
+      <div id="reasonDetail" class="reason-detail"></div>
+      <p id="reasonRisk" class="reason-risk"></p>
+    </section>
+  </div>
   <script>
 (() => {
   'use strict';
@@ -604,7 +673,7 @@ footer p{margin:3px 0}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v22-20261109-mobile-tiles-hold-plan';
+  const VERSION = 'auction-v23-20261109-stock-reason-sheets';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -720,6 +789,55 @@ footer p{margin:3px 0}
     toast.timer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
+  function closeReasonModal() {
+    const modal = $('reasonModal');
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+  }
+
+  function openReasonModal(code, kind) {
+    const row = state.marketPool?.rows?.find((x) => String(x.code) === String(code));
+    if (!row) return;
+    const reason = kind === 'candidate' ? candidateReasonOf(row) : limitReasonOf(row);
+    $('reasonEyebrow').textContent = kind === 'candidate'
+      ? 'NEXT-DAY CANDIDATE · 入选判断'
+      : 'LIMIT-UP POOL · 封板原因';
+    $('reasonTitle').textContent = `${row.name} · ${String(row.code).slice(2)}`;
+    $('reasonBrief').textContent = reason.brief;
+    $('reasonFacts').innerHTML = reason.facts.map(([label, value]) =>
+      `<div class="reason-fact"><small>${esc(label)}</small><b>${esc(value)}</b></div>`
+    ).join('');
+    $('reasonDetail').innerHTML = reason.detail.map((text) => `<p>${esc(text)}</p>`).join('');
+    $('reasonRisk').textContent = kind === 'candidate'
+      ? '这是盘后候选判断，不代表次日必涨；最终执行必须以 09:25 竞价和 9:30–9:45 分时承接确认。'
+      : '封板原因描述的是当日已经发生的盘口结构；次日仍可能受竞价、板块分歧和大盘环境影响。';
+    $('reasonModal').hidden = false;
+    document.body.classList.add('modal-open');
+    $('reasonClose').focus();
+  }
+
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-reason-code]');
+    if (trigger) {
+      openReasonModal(trigger.dataset.reasonCode, trigger.dataset.reasonKind);
+      return;
+    }
+    if (event.target.closest('#reasonClose') || event.target.closest('#reasonBackdrop')) {
+      closeReasonModal();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeReasonModal();
+      return;
+    }
+    if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-reason-code]')) {
+      event.preventDefault();
+      openReasonModal(event.target.dataset.reasonCode, event.target.dataset.reasonKind);
+    }
+  });
+
   function jsonpCallback(url, callbackName, timeout = 16000) {
     return new Promise((resolve, reject) => {
       const name = callbackName || `auc_cb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -803,6 +921,103 @@ footer p{margin:3px 0}
     if (h === 2) return '2进3';
     if (h === 3) return '3进4';
     return '4进5以上';
+  }
+
+  function formatMoney(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '--';
+    if (n >= 100000000) return `${(n / 100000000).toFixed(2)}亿`;
+    if (n >= 10000) return `${Math.round(n / 10000)}万`;
+    return `${Math.round(n)}元`;
+  }
+
+  function sealPhase(t) {
+    const n = Number(t);
+    if (!Number.isFinite(n) || n <= 0) {
+      return { short: '封板时间待补', detail: '封板时间字段缺失，暂只参考板块与开板信息' };
+    }
+    if (n <= 93100) {
+      return { short: '竞价封板', detail: '竞价阶段即冲到涨停附近，隔夜资金主动抢筹意愿最强' };
+    }
+    if (n <= 100000) {
+      return { short: '早盘快速板', detail: '开盘半小时内快速封板，主动性买盘占优' };
+    }
+    if (n <= 113000) {
+      return { short: '上午强势板', detail: '上午完成封板，资金进攻节奏较明确' };
+    }
+    if (n <= 130000) {
+      return { short: '午前封板', detail: '午前接力封住涨停，盘中承接仍有力度' };
+    }
+    if (n <= 140000) {
+      return { short: '午后回封', detail: '午后完成封板，经过分歧后仍有资金承接' };
+    }
+    return { short: '尾盘封板', detail: '尾盘才封住，主动性略弱，次日更依赖竞价确认' };
+  }
+
+  function limitReasonOf(x) {
+    const phase = sealPhase(x.firstTime);
+    const height = Math.max(1, Number(x.boards) || 1);
+    const sectorCount = Math.max(1, Number(x.sectorCount) || 1);
+    const sectorText = x.sectorLeader
+      ? `${x.sector}板块共有${sectorCount}只涨停，该股排第1，属于板块龙头`
+      : `${x.sector}板块共有${sectorCount}只涨停，该股排第${x.sectorRank}，属于板块跟风或助攻`;
+    const heightText = height === 1
+      ? '首板启动，代表当日资金刚开始形成共识'
+      : height === 2
+        ? '二板加速，已形成初步连板辨识度'
+        : height === 3
+          ? '三板进入高辨识度区间，资金关注度明显提升'
+          : `${height}板处于高位梯队，赚钱效应的辨识度强，但次日分歧也会放大`;
+    const breaks = Math.max(0, Number(x.breaks) || 0);
+    const breakText = breaks === 0
+      ? '全天未开板，封板后抛压承接稳定'
+      : breaks <= 2
+        ? `盘中开板${breaks}次后回封，分歧中的承接已经过换手检验`
+        : `盘中开板${breaks}次后仍能回封，筹码分歧很大但最终仍有资金托住`;
+    const turnover = Number(x.turnover) || 0;
+    const turnoverText = turnover >= 8
+      ? `换手${turnover.toFixed(2)}%，抛压释放较充分`
+      : turnover > 0
+        ? `换手${turnover.toFixed(2)}%，成交活跃度适中`
+        : '换手率字段缺失';
+    const fundText = Number(x.sealAmount) > 0
+      ? `封板资金参考约${formatMoney(x.sealAmount)}`
+      : '封板资金字段缺失';
+    return {
+      brief: `${phase.short}、${x.sectorLeader ? '板块龙头' : `板块第${x.sectorRank}`}、${breaks ? `开板${breaks}次` : '未开板'}，封板结构${x.sectorLeader && breaks <= 1 ? '较强' : '仍需次日确认'}`,
+      detail: [
+        `${phase.detail}。${heightText}。`,
+        `${sectorText}，板块联动为封板提供了合力。`,
+        `${breakText}；${turnoverText}。${fundText}。`
+      ],
+      facts: [
+        ['首封时间', timeText(x.firstTime)],
+        ['开板次数', breaks ? `${breaks}次` : '未开板'],
+        ['板块地位', `第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}`],
+        ['封板资金', formatMoney(x.sealAmount)]
+      ]
+    };
+  }
+
+  function candidateReasonOf(x) {
+    const base = limitReasonOf(x);
+    const score = Number(x.candidateScore);
+    const scoreText = !Number.isFinite(score)
+      ? '预评分待计算'
+      : score >= 72
+        ? `预评分${fmt(score, 1)}，处于第一梯队`
+        : score >= 66
+          ? `预评分${fmt(score, 1)}，处于优先跟踪区`
+          : `预评分${fmt(score, 1)}，达到候选观察线`;
+    return {
+      brief: `${base.brief}；${scoreText}，因此进入下一交易日跟踪名单`,
+      detail: [
+        ...base.detail,
+        `${scoreText}。该评分只使用当日涨停盘口与板块结构，不包含次日竞价分。`,
+        '次日仍需竞价涨幅落在 -2.5% 至 6.5%，并在 9:30–9:45 站上开盘价和分时均价后才具备执行条件。'
+      ],
+      facts: [...base.facts, ['候选评分', Number.isFinite(score) ? fmt(score, 1) : '--']]
+    };
   }
 
   function boardDowngraded(code) {
@@ -1679,6 +1894,8 @@ footer p{margin:3px 0}
       group.forEach((x, i) => {
         x.sectorRank = i + 1;
         x.sectorLeader = i === 0;
+        x.sectorCount = group.length;
+        x.marketHeight = maxHeight;
         const sectorStrength = group.length >= 3 ? 6 : group.length === 2 ? 4 : 0;
         const leaderBonus = x.sectorLeader ? 4 : 0;
         const score = 48 + scoreC(x.boards, maxHeight) + scoreD(x.firstTime) +
@@ -1698,6 +1915,11 @@ footer p{margin:3px 0}
       firstTime: firstTime(x),
       breaks: Math.max(0, Number(x.zbc) || 0),
       amount: Number(x.amount) || 0,
+      sealAmount: Number(x.fund) || 0,
+      turnover: Number(x.hs) || 0,
+      floatCap: Number(x.ltsz) || 0,
+      streakDays: Number(x.zttj?.days) || 0,
+      streakCount: Number(x.zttj?.ct) || 0,
       downgraded: boardDowngraded(ztCode(x))
     })).filter((x) => x.code && x.name);
     return rankLimitRows(rows);
@@ -1731,20 +1953,29 @@ footer p{margin:3px 0}
     );
     const shown = ranked.slice(0, 20);
     $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
-    list.innerHTML = shown.length ? shown.map((x) => `
-      <div class="candidate-row">
+    list.innerHTML = shown.length ? shown.map((x) => {
+      const decision = candidateReasonOf(x);
+      return `
+      <div class="candidate-row" role="button" tabindex="0"
+        data-reason-code="${esc(x.code)}" data-reason-kind="candidate"
+        aria-label="查看${esc(x.name)}入选判断">
         <div class="candidate-head">
           <strong>${esc(x.name)}</strong>
           <b>${x.boards}板</b>
         </div>
         <small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>
-        ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
-        <div class="candidate-score-line">候选预评分 ${fmt(x.candidateScore, 1)}</div>
-        <div class="candidate-foot">
-          <time>首封 ${timeText(x.firstTime)}</time>
-          <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</span> · ${x.breaks ? `开板${x.breaks}次` : '未开板'}</em>
+        <div class="candidate-metrics">
+          ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
+          <div class="candidate-score-line">预评分 ${fmt(x.candidateScore, 1)}</div>
         </div>
-      </div>`).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
+        <p class="candidate-reason-brief">${esc(decision.brief)}</p>
+        <div class="candidate-foot">
+          <time>首封 ${timeText(x.firstTime).slice(0, 5)}</time>
+          <em><span class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块${x.sectorRank} ${x.sectorLeader ? '龙头' : '跟风'}</span></em>
+        </div>
+        <span class="candidate-open">查看完整入选判断 →</span>
+      </div>`;
+    }).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
 
     const groups = {};
     pool.rows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
@@ -1755,13 +1986,20 @@ footer p{margin:3px 0}
         <strong>${height}板</strong>
         <div class="ladder-stocks">${groups[height].sort((a, b) =>
           (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
-        ).map((x) => `
-          <div class="ladder-chip ${x.downgraded ? 'board20' : ''}">
+        ).map((x) => {
+          const decision = limitReasonOf(x);
+          return `
+          <div class="ladder-chip ${x.downgraded ? 'board20' : ''}" role="button" tabindex="0"
+            data-reason-code="${esc(x.code)}" data-reason-kind="ladder"
+            aria-label="查看${esc(x.name)}封板原因">
             <b>${esc(x.name)} <small>${esc(x.code.slice(2))}</small></b>
             <small>板块：${esc(x.sector)} · 首封 ${timeText(x.firstTime)}</small>
             ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
             <small class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</small>
-          </div>`).join('')}</div>
+            <p class="ladder-reason-brief">${esc(decision.brief)}</p>
+            <span class="ladder-reason-more">查看封板原因 →</span>
+          </div>`;
+        }).join('')}</div>
       </article>`).join('');
   }
 
