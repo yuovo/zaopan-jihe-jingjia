@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-09-stock-reason-sheets-v24">
+  <meta name="apanel-build" content="2026-11-09-today-first-streak-style-v25">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -212,6 +212,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .ladder-chip{padding:6px 8px;border:1px solid #ded4c4;border-radius:9px;background:#fffdf8;min-width:112px}
 .ladder-chip b{display:block;color:var(--forest);font-size:11.5px}
 .ladder-chip small{display:block;margin-top:3px;color:#7a8580;font-size:9px}
+.streak-badge{display:inline-flex;align-items:center;margin-top:5px;padding:3px 7px;border-radius:999px;background:#f4e6cd;color:#8d5a20;font:700 9.5px/1.2 Consolas,monospace;white-space:nowrap}
 .ladder-chip .final-pct{display:block;margin-top:4px;font-size:9.5px}
 .ladder-reason-brief{margin:7px 0 0;padding-top:6px;border-top:1px solid #ece4d7;color:#52655e;font-size:9.5px;line-height:1.55}
 .ladder-reason-more{display:block;margin-top:4px;color:#8d5a20;font-size:9px;font-weight:700}
@@ -469,6 +470,7 @@ body.modal-open{overflow:hidden}
   }
   .ladder-chip b{font-size:13.5px;line-height:1.4}
   .ladder-chip small{font-size:11px;line-height:1.48}
+  .streak-badge{margin-top:6px;padding:4px 8px;font-size:11px}
   .ladder-chip .final-pct{font-size:11.5px;margin-top:5px}
   .ladder-reason-brief{font-size:10.8px;line-height:1.52}
   .ladder-reason-more{font-size:10.5px}
@@ -563,6 +565,20 @@ body.modal-open{overflow:hidden}
       <article><span>定稿时间</span><strong id="lockTime">--</strong><small id="snapshotTime">等待09:25快照</small></article>
     </section>
 
+    <section class="section-block picks-block">
+      <div class="section-head">
+        <div>
+          <span class="section-label">TODAY PICKS</span>
+          <span id="todayWhen" class="section-date">今日 --</span>
+          <h2>今日竞价优选</h2>
+        </div>
+        <span id="pickCount" class="count-tag">0只</span>
+      </div>
+      <div id="picks" class="picks">
+        <div class="empty-state">等待09:25后自动筛选。</div>
+      </div>
+    </section>
+
     <section id="previousBlock" class="section-block previous-block">
       <div class="section-head">
         <div>
@@ -575,20 +591,6 @@ body.modal-open{overflow:hidden}
       <p id="previousHint" class="previous-hint">读取上一交易日定稿；今日09:25后自动更新竞价分类和持仓处理。</p>
       <div id="previousPicks" class="picks">
         <div class="empty-state">正在读取上一交易日优选。</div>
-      </div>
-    </section>
-
-    <section class="section-block picks-block">
-      <div class="section-head">
-        <div>
-          <span class="section-label">TODAY PICKS</span>
-          <span id="todayWhen" class="section-date">今日 --</span>
-          <h2>今日竞价优选</h2>
-        </div>
-        <span id="pickCount" class="count-tag">0只</span>
-      </div>
-      <div id="picks" class="picks">
-        <div class="empty-state">等待09:25后自动筛选。</div>
       </div>
     </section>
 
@@ -673,7 +675,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v24-20261109-stock-reason-sheets';
+  const VERSION = 'auction-v25-20261109-today-first-streak-style';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -931,6 +933,12 @@ body.modal-open{overflow:hidden}
     return `${Math.round(n)}元`;
   }
 
+  function boardsLabel(x) {
+    const days = Math.max(1, Number(x?.streakDays) || 1);
+    const count = Math.max(1, Number(x?.streakCount) || Number(x?.boards) || 1);
+    return `${days}天${count}板`;
+  }
+
   function sealPhase(t) {
     const n = Number(t);
     if (!Number.isFinite(n) || n <= 0) {
@@ -991,6 +999,7 @@ body.modal-open{overflow:hidden}
         `${breakText}${liquidityText ? `；${liquidityText}` : ''}。`
       ],
       facts: [
+        ['连板口径', boardsLabel(x)],
         ['首封时间', timeText(x.firstTime)],
         ['开板次数', breaks ? `${breaks}次` : '未开板'],
         ['板块地位', `第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}`],
@@ -1815,7 +1824,8 @@ body.modal-open{overflow:hidden}
     $('topGap').textContent = sign(d.repGap) + '%';
     $('topName').textContent = (d.rep.name || d.rep.n || d.rep.code || '--') + ' · ' + String(d.rep.code || '').slice(2);
     $('threshold').textContent = d.threshold + '分';
-    $('pickLimit').textContent = '最多优选' + (['退潮期', '冰点期', '分歧期', '高潮期'].includes(d.cycle.label) ? '1' : '2') + '只';
+    const dailyPickLimit = ['退潮期', '冰点期', '分歧期', '高潮期'].includes(d.cycle.label) ? 1 : 2;
+    $('pickLimit').textContent = `今日上限${dailyPickLimit}只 · 常态1–2只`;
     $('lockTime').textContent = d.lockedAt;
     $('snapshotTime').textContent = '快照 ' + d.snapshot;
     $('pickCount').textContent = d.picks.length + '只';
@@ -1945,7 +1955,7 @@ body.modal-open{overflow:hidden}
     $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
     $('ladderTitle').textContent = `${dayLabel} 连板池`;
     $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；候选预评分由连板高度、首封时间、开板次数、板块强度和龙头加成计算，不含次日竞价分；排除创业板、科创板、北交所和 ST。`;
-    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；板块名称取自东方财富行业板块；同板块按连板高度、首封时间、成交额排序，第1名为龙头。`;
+    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；连板采用同花顺式「X天Y板」口径；板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
@@ -1994,6 +2004,7 @@ body.modal-open{overflow:hidden}
             data-reason-code="${esc(x.code)}" data-reason-kind="ladder"
             aria-label="查看${esc(x.name)}封板原因">
             <b>${esc(x.name)} <small>${esc(x.code.slice(2))}</small></b>
+            <span class="streak-badge">${boardsLabel(x)}</span>
             <small>板块：${esc(x.sector)} · 首封 ${timeText(x.firstTime)}</small>
             ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
             <small class="sector-rank ${x.sectorLeader ? 'leader' : ''}">板块第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}</small>
