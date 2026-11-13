@@ -2431,7 +2431,18 @@ body.modal-open{overflow:hidden}
     tick();
     setInterval(tick, 1000);
     try {
-      const records = await loadArchiveRecords(1500);
+      let records = await loadArchiveRecords(1500);
+    if (!records.length) {
+      // 首次只等 1.5 秒，归档 1MB 常来不及；超时后补一次长超时重试，避免退回内置旧数据
+      setTimeout(async () => {
+        const late = await loadArchiveRecords(12000);
+        if (late && late.length) {
+          state.previous = resolvePreviousSelection();
+          renderPreviousSelection();
+          updateSectionDates();
+        }
+      }, 1500);
+    }
       const rec = currentArchiveRecord(records);
       const shared = rec ? await modelFromArchive(rec) : null;
       const saved = shared || loadLock();
