@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-09-today-first-streak-style-v25">
+  <meta name="apanel-build" content="2026-11-15-empty-previous-stable-v27">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -675,7 +675,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v26-20261115-ev-lowopen';
+  const VERSION = 'auction-v27-20261115-empty-previous-stable';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -1180,43 +1180,45 @@ body.modal-open{overflow:hidden}
   }
 
   function compactSelection(day, picks, meta = {}) {
-    if (!Array.isArray(picks) || !picks.length) return null;
+    const normalizedDay = String(day || '');
+    if (!/^\d{8}$/.test(normalizedDay) || !Array.isArray(picks)) return null;
+    const compactPicks = picks.filter((p) => p && p.code).map((p, i) => {
+      const height = Math.max(1, Number(p.height || p.auctionHeight || p.ylbc || p.lbc) || 1);
+      const score = Number(p.total ?? p.finalScore);
+      return {
+        code: String(p.code),
+        name: String(p.name || p.n || p.code),
+        sector: String(p.sector || p.hybk || '其他'),
+        height,
+        rank: i + 1,
+        total: Number.isFinite(score) ? score : NaN,
+        price: Number(p.price ?? p.lastPrice),
+        gap: Number(p.gap),
+        firstTime: Number(p.firstTime),
+        stage: p.stage || stage(height),
+        position: p.position || p.positionPct || '—',
+        closePrice: numOrNull(p.closePrice),
+        closePct: numOrNull(p.closePct),
+        highPct: numOrNull(p.highPct),
+        closeStatus: String(p.closeStatus || ''),
+        failureReason: String(p.failureReason || ''),
+        closeReviewedAt: String(p.closeReviewedAt || ''),
+        advanced: Boolean(p.advanced),
+        candidateAdvanced: Boolean(p.candidateAdvanced)
+      };
+    });
     return {
-      day: String(day || ''),
+      day: normalizedDay,
       lockedAt: meta.lockedAt || '',
       target: meta.target || '9:30–9:45',
-      picks: picks.filter((p) => p && p.code).map((p, i) => {
-        const height = Math.max(1, Number(p.height || p.auctionHeight || p.ylbc || p.lbc) || 1);
-        const score = Number(p.total ?? p.finalScore);
-        return {
-          code: String(p.code),
-          name: String(p.name || p.n || p.code),
-          sector: String(p.sector || p.hybk || '其他'),
-          height,
-          rank: i + 1,
-          total: Number.isFinite(score) ? score : NaN,
-          price: Number(p.price ?? p.lastPrice),
-          gap: Number(p.gap),
-          firstTime: Number(p.firstTime),
-          stage: p.stage || stage(height),
-          position: p.position || p.positionPct || '—',
-          closePrice: numOrNull(p.closePrice),
-          closePct: numOrNull(p.closePct),
-          highPct: numOrNull(p.highPct),
-          closeStatus: String(p.closeStatus || ''),
-          failureReason: String(p.failureReason || ''),
-          closeReviewedAt: String(p.closeReviewedAt || ''),
-          advanced: Boolean(p.advanced),
-          candidateAdvanced: Boolean(p.candidateAdvanced)
-        };
-      })
+      picks: compactPicks
     };
   }
 
   function loadSelectionHistory() {
     try {
       const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
-      return Object.values(stored).filter((x) => x && x.day && Array.isArray(x.picks) && x.picks.length);
+      return Object.values(stored).filter((x) => x && /^\d{8}$/.test(String(x.day)) && Array.isArray(x.picks));
     } catch (_) { return []; }
   }
 
@@ -1227,7 +1229,7 @@ body.modal-open{overflow:hidden}
       const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
       stored[selection.day] = selection;
       const keep = Object.values(stored)
-        .filter((x) => x && x.day && Array.isArray(x.picks) && x.picks.length)
+        .filter((x) => x && /^\d{8}$/.test(String(x.day)) && Array.isArray(x.picks))
         .sort((a, b) => String(b.day).localeCompare(String(a.day)))
         .slice(0, 12);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(Object.fromEntries(keep.map((x) => [x.day, x]))));
@@ -1323,7 +1325,7 @@ body.modal-open{overflow:hidden}
   }
 
   function selectionFromRecord(rec) {
-    if (!rec || !Array.isArray(rec.picks) || !rec.picks.length) return null;
+    if (!rec || !Array.isArray(rec.picks)) return null;
     return compactSelection(rec.day, rec.picks, {
       lockedAt: rec.lockedAt || rec.snapshotLockedAt || '',
       target: rec.auctionDataMode || ''
@@ -1345,10 +1347,17 @@ body.modal-open{overflow:hidden}
     loadSelectionHistory().forEach((selection) => {
       if (selection.day < today) historyByDay[selection.day] = selection;
     });
+    const candidateDays = Object.values(loadCandidateHistory())
+      .map((x) => String(x?.day || ''))
+      .filter((day) => /^\d{8}$/.test(day) && day < today);
+    const snapshotDays = Object.keys(loadMarketSnapshots())
+      .filter((day) => /^\d{8}$/.test(day) && day < today);
     const latestDay = [...new Set([
       ...Object.keys(archiveByDay),
       ...Object.keys(historyByDay),
-      ...Object.keys(legacyByDay)
+      ...Object.keys(legacyByDay),
+      ...candidateDays,
+      ...snapshotDays
     ])].sort().at(-1);
     if (!latestDay) return null;
     const selection = historyByDay[latestDay] || archiveByDay[latestDay] || legacyByDay[latestDay] || null;

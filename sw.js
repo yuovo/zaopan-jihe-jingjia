@@ -1,4 +1,4 @@
-const CACHE = 'zaopan-auction-static-v14';
+const CACHE = 'zaopan-auction-static-v15';
 const ASSETS = [
   './index.html', './manifest.webmanifest',
   './apple-touch-icon.png', './auction-icon-192.png', './auction-icon-512.png'
