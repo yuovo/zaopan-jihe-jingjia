@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-15-empty-previous-stable-v27">
+  <meta name="apanel-build" content="2026-11-16-entry-25-75-confirm-0946-v28">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -161,6 +161,20 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .trade-plan p b{color:#8d5a20;white-space:nowrap}
 .trade-plan p span{color:#5e625c}
 .trade-plan .trade-abort{border-top:1px dashed #dfd1ba;padding-top:7px}
+.confirm-0946{margin-top:11px;padding:12px;border:1px solid #d6ded9;border-radius:12px;background:#f7f8f4}
+.confirm-0946.pass{border-color:#b6d8ca;background:#edf8f3}
+.confirm-0946.fail{border-color:#e1c0c1;background:#fbf0f0}
+.confirm-0946.missing{border-color:#e4ceaa;background:#fbf5e9}
+.confirm-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.confirm-head span{color:#667a72;font:700 9.5px/1 Consolas,monospace;letter-spacing:.7px}
+.confirm-head b{padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.72);color:#5e6e68;font-size:10.5px}
+.confirm-0946.pass .confirm-head b{color:#17624f}.confirm-0946.fail .confirm-head b{color:#96373f}
+.confirm-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:9px}
+.confirm-check{padding:7px 8px;border:1px solid rgba(120,103,75,.14);border-radius:9px;background:rgba(255,255,255,.7)}
+.confirm-check small{display:block;color:#7e8c86;font-size:9px;line-height:1.35}
+.confirm-check b{display:block;margin-top:3px;color:#5e6a65;font-size:10.5px;line-height:1.4}
+.confirm-check.ok b{color:#17624f}.confirm-check.bad b{color:#96373f}
+.confirm-note{margin:8px 0 0;color:#596b64;font-size:10.5px;line-height:1.62}
 .close-review{margin-top:11px;padding:11px 12px;border-radius:12px;border:1px solid #ddd5c8;background:#f7f4ec}
 .close-review.success{border-color:#bcdace;background:#edf7f2}
 .close-review.miss{border-color:#e4c4c5;background:#fbf1f1}
@@ -412,6 +426,14 @@ body.modal-open{overflow:hidden}
   .trade-plan-head span{font-size:10.5px}
   .trade-plan-head b{font-size:12.5px}
   .trade-plan p{grid-template-columns:48px 1fr;gap:7px;margin-top:8px;font-size:13px;line-height:1.68}
+  .confirm-0946{padding:13px;border-radius:13px}
+  .confirm-head span{font-size:10.5px}
+  .confirm-head b{font-size:12px}
+  .confirm-checks{grid-template-columns:1fr;gap:6px;margin-top:10px}
+  .confirm-check{padding:9px 10px}
+  .confirm-check small{font-size:11px}
+  .confirm-check b{font-size:12px}
+  .confirm-note{font-size:12px;line-height:1.68}
   .close-review{padding:13px;border-radius:13px}
   .close-review-head span{font-size:10.5px}
   .close-review-head b{font-size:13px}
@@ -634,7 +656,8 @@ body.modal-open{overflow:hidden}
     <details class="fold">
       <summary><span>买入与卖出纪律</span><b>先确认，再执行</b></summary>
       <div class="sell-script">
-        <p><b>买入条件</b><span>9:30–9:45 站上开盘价和分时均价，回踩不破再分两笔；首笔只用计划仓位一半，不在第一分钟追直线脉冲。</span></p>
+        <p><b>两笔执行</b><span>首笔只用建议仓位的 25%，09:30 前在开盘价 ±0.5% 区间挂限价单；第二笔 75% 必须等 09:46 确认通过后再补满。25%/75% 是建议仓位内部比例，不是总资金比例。</span></p>
+        <p><b>09:46确认</b><span>09:45 的价必须同时站上开盘价和分时均价，且 9:30–9:45 最低价未跌破开盘价 1%。三项全部通过才补第二笔；任一失败或数据不齐，不补仓。</span></p>
         <p><b>高开处理</b><span>竞价高开超过 5.5% 不追；高开 1.5%–5.5% 只等回落承接，不接一致加速。</span></p>
         <p><b>止损纪律</b><span>较竞价参考价 -2% 为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行止损。</span></p>
         <p><b>止盈纪律</b><span>主板涨到 +4%～+5% 先卖一半，+7%～+8% 再减；封板可持有，开板后回封失败则清掉剩余仓位。</span></p>
@@ -675,7 +698,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v27-20261115-empty-previous-stable';
+  const VERSION = 'auction-v28-20261116-entry-25-75-confirm-0946';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -711,7 +734,8 @@ body.modal-open{overflow:hidden}
     previous: null, archiveRecords: [], previousQuoteAt: 0,
     marketPool: null, marketPoolAt: 0, marketPoolLoading: false,
     marketFinalAt: 0, marketFinalLoading: false,
-    closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {}
+    closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {},
+    confirmAt: 0, confirmLoading: false
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1553,6 +1577,154 @@ body.modal-open{overflow:hidden}
     }
   }
 
+  function confirmationView(pick) {
+    const saved = pick?.confirm0946;
+    if (!saved) {
+      return {
+        tone: 'missing', label: '等待 09:46',
+        checks: [
+          { label: '站上开盘价', value: '待确认', state: '' },
+          { label: '站上分时均价', value: '待确认', state: '' },
+          { label: '回踩不破 1%', value: '待确认', state: '' }
+        ],
+        note: '09:46 后自动读取 9:30–9:45 分时数据；数据不齐时不判通过。'
+      };
+    }
+    if (saved.status === 'pass') {
+      return {
+        tone: 'pass', label: '确认通过',
+        checks: [
+          { label: '09:45 站上开盘价', value: `是 · ${price(saved.close)}`, state: 'ok' },
+          { label: '09:45 站上均价', value: `是 · ${price(saved.vwap)}`, state: 'ok' },
+          { label: '区间最低回踩', value: `未破 · ${price(saved.low)}`, state: 'ok' }
+        ],
+        note: saved.note || '可补第二笔 75%；若现价已高于开盘 4%–5%，可少加或不加，不追高。'
+      };
+    }
+    if (saved.status === 'fail') {
+      return {
+        tone: 'fail', label: '确认未通过',
+        checks: [
+          { label: '09:45 站上开盘价', value: saved.openOk ? '是' : '否', state: saved.openOk ? 'ok' : 'bad' },
+          { label: '09:45 站上均价', value: saved.vwapOk ? '是' : '否', state: saved.vwapOk ? 'ok' : 'bad' },
+          { label: '回踩不破 1%', value: saved.lowOk ? '是' : '否', state: saved.lowOk ? 'ok' : 'bad' }
+        ],
+        note: saved.note || '不补第二笔 75%；首笔 25% 按 T+1 规则持有，次日视封板或破位处理，不补仓。'
+      };
+    }
+    return {
+      tone: 'missing', label: '数据不足',
+      checks: [
+        { label: '站上开盘价', value: '未知', state: '' },
+        { label: '站上分时均价', value: '未知', state: '' },
+        { label: '回踩不破 1%', value: '未知', state: '' }
+      ],
+      note: saved.note || '分时数据取不到，不判通过、不补第二笔。'
+    };
+  }
+
+  function confirmationMarkup(pick) {
+    const view = confirmationView(pick);
+    return `<div class="confirm-0946 ${view.tone}">
+      <div class="confirm-head"><span>09:46 BUY CONFIRM</span><b>${esc(view.label)}</b></div>
+      <div class="confirm-checks">${view.checks.map((x) =>
+        `<div class="confirm-check ${x.state}"><small>${esc(x.label)}</small><b>${esc(x.value)}</b></div>`
+      ).join('')}</div>
+      <p class="confirm-note">${esc(view.note)}</p>
+    </div>`;
+  }
+
+  async function intradayRows(code) {
+    const secid = code.startsWith('sh') ? `1.${code.slice(2)}` : `0.${code.slice(2)}`;
+    const url = `${API.baseline}?secid=${secid}` +
+      '&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13' +
+      `&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&ndays=1&ut=${EM_FLOW_UT}`;
+    let payload = null;
+    try {
+      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) payload = await response.json();
+    } catch (_) {}
+    if (!payload) {
+      try { payload = await jsonpCallback(url, null, 10000); } catch (_) {}
+    }
+    const today = ymdOffset(0);
+    return (Array.isArray(payload?.data?.trends) ? payload.data.trends : [])
+      .map((raw) => String(raw || '').split(','))
+      .filter((p) => String(p[0] || '').slice(0, 10).replaceAll('-', '') === today);
+  }
+
+  async function evaluate0946(pick) {
+    const open = Number(pick.price);
+    if (!(open > 0)) {
+      return { status: 'missing', note: '开盘参考价缺失，无法确认第二笔。', checkedAt: clockText() };
+    }
+    try {
+      const rows = (await intradayRows(pick.code)).filter((p) => {
+        const time = String(p[0] || '').slice(11, 16);
+        return time >= '09:30' && time <= '09:45';
+      });
+      const last = rows.find((p) => String(p[0] || '').slice(11, 16) === '09:45');
+      const close = Number(last?.[2]);
+      const vwap = Number(last?.[7]);
+      const lows = rows.map((p) => Number(p[4])).filter((v) => Number.isFinite(v) && v > 0);
+      if (!last || !(close > 0) || !(vwap > 0) || !lows.length || rows.length < 10) {
+        return { status: 'missing', note: '9:30–9:45 分时数据尚不完整，不判通过。', checkedAt: clockText() };
+      }
+      const low = Math.min(...lows);
+      const openOk = close >= open;
+      const vwapOk = close >= vwap;
+      const lowOk = low >= open * .99;
+      const passed = openOk && vwapOk && lowOk;
+      let note = passed
+        ? '三项条件全部通过，可补第二笔 75%。'
+        : '任一条件未通过，不补第二笔；首笔 25% 按 T+1 规则处理。';
+      if (passed) {
+        const pctFromOpen = (close / open - 1) * 100;
+        if (pctFromOpen >= 9.5) note = '确认通过，但价格已接近或处于涨停，只能在涨停价排队；排不到就放弃第二笔。';
+        else if (pctFromOpen >= 4) note = `确认通过，但已高于开盘约 ${pctFromOpen.toFixed(1)}%，第二笔可少加或不加，不追高。`;
+      }
+      return {
+        status: passed ? 'pass' : 'fail',
+        openOk, vwapOk, lowOk, open, close, vwap, low, note,
+        checkedAt: clockText()
+      };
+    } catch (_) {
+      return { status: 'missing', note: '分时数据读取失败，不判通过。', checkedAt: clockText() };
+    }
+  }
+
+  async function refresh946Confirmations(force = false) {
+    const pickList = state.data?.picks || [];
+    if (!pickList.length || state.confirmLoading) return;
+    const now = bjNow();
+    const seconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    if (now.getDay() < 1 || now.getDay() > 5 || seconds < 35160) return;
+    if (!force && Date.now() < state.confirmAt) return;
+    state.confirmLoading = true;
+    state.confirmAt = Date.now() + 60000;
+    try {
+      const results = await Promise.all(pickList.map(async (pick) => [pick, await evaluate0946(pick)]));
+      let changed = false;
+      results.forEach(([pick, result]) => {
+        const previous = JSON.stringify(pick.confirm0946 || null);
+        const next = JSON.stringify(result);
+        if (previous !== next) changed = true;
+        pick.confirm0946 = result;
+      });
+      state.confirmAt = Date.now() + (
+        results.every(([, result]) => result.status === 'pass' || result.status === 'fail')
+          ? 86400000
+          : 60000
+      );
+      if (changed) {
+        saveLock(state.data);
+        render();
+      }
+    } finally {
+      state.confirmLoading = false;
+    }
+  }
+
   // 依据 100 个交易日、6114 条样本的期望值回测重写：
   // 低开反核是唯一稳定正 EV 的区间（+0.50%），高开越多封板率越高、赔率越差（>+6% 为 -1.75%）
   function scoreA(gap) {
@@ -1879,6 +2051,7 @@ body.modal-open{overflow:hidden}
           <p><b>止盈</b><span>${esc(plan.take)}</span></p>
           <p class="trade-abort"><b>放弃</b><span>${esc(plan.abort)}</span></p>
         </div>
+        ${confirmationMarkup(c)}
         ${reviewed ? `
           <div class="close-review ${c.advanced ? 'success' : 'miss'}">
             <div class="close-review-head"><span>CLOSE REVIEW</span><b>${esc(c.advanced ? '封板达成 · 已晋级' : c.closeStatus)}</b></div>
@@ -2183,8 +2356,8 @@ body.modal-open{overflow:hidden}
     const stop = price(ref * .98);
     if (c.strategy === '低吸') {
       return {
-        buy: `低开反核：竞价 ${sign(gap)}%，已跌破参考价 ${price(ref)}。9:30 后不破当日最低点、重新站上分时均价再分两笔接回，不接下杀第一波。`,
-        position: `回测里低开反核是唯一稳定正期望区间，但封板率只有约 4%，属于低吸博反弹。仓位上限 ${c.position || '5%'}，不加仓、不摊平。`,
+        buy: `低开反核：竞价 ${sign(gap)}%，已跌破参考价 ${price(ref)}。首笔 25% 只在 9:30 后不破当日最低点并重新站上分时均价时接入，不接下杀第一波；第二笔 75% 等 09:46 确认通过。`,
+        position: `低吸仓位上限 ${c.position || '5%'}：首笔 25%，确认通过后再补剩余 75%，均按建议仓位内部比例计算；不加仓、不摊平。`,
         stop: `跌破竞价价 -3%（约 ${price(ref * .97)}），或创日内新低后 5 分钟不收回，直接止损。`,
         take: `反弹到分时均价上方 +2%~+3% 先卖一半；回到参考价 ${price(ref)} 附近全部了结，不奢望封板。`,
         abort: `开盘后继续放量下杀、板块整体走弱，或 10:00 前始终站不上分时均价，直接放弃。`
@@ -2194,17 +2367,17 @@ body.modal-open{overflow:hidden}
     const secondTake = price(ref * (c.downgraded ? 1.10 : 1.07));
     let buy;
     if (gap > 5.5) {
-      buy = `高开 ${sign(gap)}% 不追。只在回落到 ${low}–${high} 后重新站稳分时均价，才考虑小仓。`;
+      buy = `高开 ${sign(gap)}% 不追，首笔 25% 不挂主动单。只有回落到 ${low}–${high} 且 09:46 确认通过后，才考虑小仓，仍不追直线脉冲。`;
     } else if (gap < -1.5) {
-      buy = `低开 ${sign(gap)}% 暂不买主动单。只有 9:45 前重新站上 ${price(ref)} 且分时均价同步上翘，才允许小仓弱转强。`;
+      buy = `低开 ${sign(gap)}% 暂不挂首笔主动单。只有 9:45 前重新站上 ${price(ref)} 且分时均价同步上翘，才允许 25% 仓位试错；第二笔仍等 09:46 确认。`;
     } else if (gap < -.5) {
-      buy = `弱势开局，先观察；9:30–9:45 回踩 ${low}–${high} 不破且站上分时均价，再只用首笔试探。`;
+      buy = `弱势开局，09:30 前可在 ${low}–${high} 挂首笔 25% 限价单；未成交不追，09:46 三项确认通过后才补剩余 75%。`;
     } else {
-      buy = `9:30–9:45 首次回踩 ${low}–${high}，同时站上开盘价和分时均价后再分两笔，不追第一分钟直线脉冲。`;
+      buy = `09:30 前在 ${low}–${high} 挂首笔 25% 限价单，不追第一分钟直线脉冲；剩余 75% 必须等 09:46 三项确认通过后再挂。`;
     }
     return {
       buy,
-      position: `总仓位上限 ${c.position || '5%'}；首笔只用计划仓位一半，确认不走弱后再补第二笔。`,
+      position: `建议仓位 ${c.position || '5%'}；首笔只用其中 25%，09:46 确认通过后再补剩余 75%。若确认价高于开盘 4%–5%，第二笔可少加或不加。`,
       stop: `较竞价参考价 -2%（约 ${stop}）为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行。`,
       take: `先到 ${firstTake} 附近卖出计划仓位一半，再到 ${secondTake} 附近继续减仓；封板可持有，开板后回封失败则清仓。`,
       abort: `板块明显转弱、量价背离、跌破开盘价后不能快速收回，或 9:45 前始终站不上分时均价，全部放弃，不补仓。`
@@ -2395,6 +2568,9 @@ body.modal-open{overflow:hidden}
       : (sec >= 34200 || !state.marketPool?.rows?.length);
     if (needMarket) {
       refreshTodayMarket(false);
+    }
+    if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 35160) {
+      refresh946Confirmations(false);
     }
     if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 54000) {
       refreshPicksClose(false);
