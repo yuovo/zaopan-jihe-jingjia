@@ -638,7 +638,7 @@ body.modal-open{overflow:hidden}
         <p><b>高开处理</b><span>竞价高开超过 5.5% 不追；高开 1.5%–5.5% 只等回落承接，不接一致加速。</span></p>
         <p><b>止损纪律</b><span>较竞价参考价 -2% 为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行止损。</span></p>
         <p><b>止盈纪律</b><span>主板涨到 +4%～+5% 先卖一半，+7%～+8% 再减；封板可持有，开板后回封失败则清掉剩余仓位。</span></p>
-        <p><b>直接放弃</b><span>低开超过 -1.5% 不主动买；板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
+        <p><b>直接放弃</b><span>打板路径低开超过 -1.5% 不主动买；低开超过 -2.5% 的只在「低吸反核」分支里做，且必须站上分时均价。板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
       </div>
     </details>
 
@@ -675,7 +675,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v25-20261109-today-first-streak-style';
+  const VERSION = 'auction-v26-20261115-ev-lowopen';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -1544,14 +1544,15 @@ body.modal-open{overflow:hidden}
     }
   }
 
+  // 依据 100 个交易日、6114 条样本的期望值回测重写：
+  // 低开反核是唯一稳定正 EV 的区间（+0.50%），高开越多封板率越高、赔率越差（>+6% 为 -1.75%）
   function scoreA(gap) {
-    if (!Number.isFinite(gap) || gap < -2.5 || gap > 6.5) return 0;
-    if (gap < 0) return 4 * (gap + 2.5) / 2.5;
-    if (gap < 2) return 4 + (gap / 2) * 6;
-    if (gap < 3) return 14 + (gap - 2) * 2;
-    if (gap < 4) return 16 - (gap - 3) * 4;
-    if (gap < 5) return 12 - (gap - 4) * 4;
-    return 8 - (gap - 5) * 2.67;
+    if (!Number.isFinite(gap) || gap > 6.5 || gap < -7) return 0;
+    if (gap < -2.5) return 16;
+    if (gap < -0.5) return 10;
+    if (gap < 2) return 8;
+    if (gap < 4) return 4;
+    return 5;
   }
   function scoreB(volumeRatio, amountRatio) {
     const vr = Number(volumeRatio), ar = Number(amountRatio);
@@ -1703,10 +1704,11 @@ body.modal-open{overflow:hidden}
     const cycle = cycleOf(repGap, maxHeight, highOpen);
 
     all.forEach((c) => {
+      c.strategy = Number.isFinite(c.gap) && c.gap < -2.5 ? '低吸' : '打板';
       if (/ST|退/i.test(c.name)) c.filtered = 'ST或退市风险';
       else if (!Number.isFinite(c.gap)) c.filtered = '竞价行情缺失';
       else if (!Number.isFinite(c.ydayAmount)) c.filtered = '昨日成交额缺失';
-      else if (c.gap < -2.5) c.filtered = '低开超过-2.5%';
+      else if (c.gap < -7) c.filtered = '低开超过-7%';
       else if (c.gap > 6.5) c.filtered = '高开超过6.5%';
       else if (c.code === rep.code && repGap < -3) c.filtered = '最高标竞价低于-3%';
       else if (!Number.isFinite(c.firstTime)) c.filtered = '昨日封板时间缺失';
@@ -1760,13 +1762,17 @@ body.modal-open{overflow:hidden}
       }
     });
 
-    let env = { threshold: 58, multiplier: 1, maxPicks: 2 };
-    if (repGap < -3) env = { threshold: 63, multiplier: .85, maxPicks: 1 };
-    else if (repGap < -1) env = { threshold: 60, multiplier: .95, maxPicks: 2 };
+    // 回测结论：市场越热次日 EV 越差（热 >60 家 -0.78%，冷 20~40 家 -0.53%），
+    // 所以改为按昨日涨停家数反向调节，而不是只看最高标竞价
+    const poolSize = Array.isArray(pool.rows) ? pool.rows.length : 0;
+    let env = { threshold: 58, multiplier: 1, maxPicks: 2, poolSize };
+    if (poolSize >= 60) env = { threshold: 63, multiplier: .9, maxPicks: 1, poolSize };
+    else if (poolSize >= 20 && poolSize < 40) env = { threshold: 56, multiplier: 1.05, maxPicks: 2, poolSize };
+    else if (poolSize > 0 && poolSize < 20) env = { threshold: 70, multiplier: 1, maxPicks: 0, poolSize };
     if (cycle.label === '退潮期') {
       env.threshold = Math.max(env.threshold, 63);
-      env.maxPicks = 1;
-    } else if (['冰点期', '高潮期', '分歧期'].includes(cycle.label)) env.maxPicks = 1;
+      env.maxPicks = Math.min(env.maxPicks, 1);
+    } else if (['冰点期', '高潮期', '分歧期'].includes(cycle.label)) env.maxPicks = Math.min(env.maxPicks, 1);
 
     scorePool.filter((c) => !c.filtered && !c.watchOnly).forEach((c) => {
       const a = scoreA(c.gap);
@@ -1847,6 +1853,7 @@ body.modal-open{overflow:hidden}
         </div>
         <div class="pick-meta">
           <span>${esc(c.stage)}</span><span>${c.height}板</span><span>${esc(c.position)}</span>
+          ${c.strategy === '低吸' ? '<span class="promoted">低吸反核</span>' : ''}
           <span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span>
           ${promoted ? '<span class="promoted">已晋级</span>' : ''}
         </div>
@@ -2165,6 +2172,15 @@ body.modal-open{overflow:hidden}
     const low = price(ref * .995);
     const high = price(ref * 1.005);
     const stop = price(ref * .98);
+    if (c.strategy === '低吸') {
+      return {
+        buy: `低开反核：竞价 ${sign(gap)}%，已跌破参考价 ${price(ref)}。9:30 后不破当日最低点、重新站上分时均价再分两笔接回，不接下杀第一波。`,
+        position: `回测里低开反核是唯一稳定正期望区间，但封板率只有约 4%，属于低吸博反弹。仓位上限 ${c.position || '5%'}，不加仓、不摊平。`,
+        stop: `跌破竞价价 -3%（约 ${price(ref * .97)}），或创日内新低后 5 分钟不收回，直接止损。`,
+        take: `反弹到分时均价上方 +2%~+3% 先卖一半；回到参考价 ${price(ref)} 附近全部了结，不奢望封板。`,
+        abort: `开盘后继续放量下杀、板块整体走弱，或 10:00 前始终站不上分时均价，直接放弃。`
+      };
+    }
     const firstTake = price(ref * (c.downgraded ? 1.06 : 1.04));
     const secondTake = price(ref * (c.downgraded ? 1.10 : 1.07));
     let buy;
