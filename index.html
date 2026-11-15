@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-auction-book-g-v30">
+  <meta name="apanel-build" content="2026-11-16-auction-book-g-v31">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -773,12 +773,13 @@ body.modal-open{overflow:hidden}
     baseline: 'https://push2his.eastmoney.com/api/qt/stock/trends2/get',
     flow: 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get',
     announce: 'https://np-anotice-stock.eastmoney.com/api/security/ann',
+    announceProxy: 'https://r.jina.ai/',
     quote: 'https://qt.gtimg.cn/q=',
     archive: archiveOverride || 'https://yuovo.github.io/a-share-analysis-panel/auction-daily.js'
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v30-20261116-auction-book-g';
+  const VERSION = 'auction-v31-20261116-auction-book-g';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -1205,7 +1206,15 @@ body.modal-open{overflow:hidden}
       if (response.ok) payload = await response.json();
     } catch (_) {}
     if (!payload) {
-      try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
+      try {
+        const proxied = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
+        if (proxied.ok) {
+          const text = await proxied.text();
+          const marker = text.indexOf('Markdown Content:');
+          const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
+          payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
+        }
+      } catch (_) {}
     }
     return (Array.isArray(payload?.data?.trends) ? payload.data.trends : [])
       .map((raw) => String(raw || '').split(','))
