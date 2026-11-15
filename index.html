@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-auction-book-g-v31">
+  <meta name="apanel-build" content="2026-11-16-auction-book-g-v32">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -722,6 +722,9 @@ body.modal-open{overflow:hidden}
       <div class="sell-script">
         <p><b>两笔执行</b><span>首笔只用建议仓位的 25%，09:30 前在开盘价 ±0.5% 区间挂限价单；第二笔 75% 必须等 09:46 确认通过后再补满。25%/75% 是建议仓位内部比例，不是总资金比例。</span></p>
         <p><b>09:46确认</b><span>09:45 的价必须同时站上开盘价和分时均价，且 9:30–9:45 最低价未跌破开盘价 1%。三项全部通过才补第二笔；任一失败或数据不齐，不补仓。</span></p>
+        <p><b>盘口G项</b><span>用 09:25 腾讯五档委买、委卖计算委比，计 0–6 分；委比低于 -30% 直接淘汰。G 项平均增加约 3 分，动态门槛同步整体上调 3 分。</span></p>
+        <p><b>封单可买性</b><span>开在涨停价时，用买一价 × 买一量估算封单额，并按封单额和流通市值判断“可排队 / 排队偏难 / 难排队”；只展示，不加分。</span></p>
+        <p><b>公告核查</b><span>选股最后自动读取最近公告，识别立案调查、监管函、问询函、警示函、退市风险、异常波动、减持、预亏等风险关键词；有风险则标红并把仓位上限降到 ≤5%，查不到明确标记“公告未核查”。</span></p>
         <p><b>高开处理</b><span>竞价高开超过 5.5% 不追；高开 1.5%–5.5% 只等回落承接，不接一致加速。</span></p>
         <p><b>止损纪律</b><span>较竞价参考价 -2% 为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行止损。</span></p>
         <p><b>止盈纪律</b><span>主板涨到 +4%～+5% 先卖一半，+7%～+8% 再减；封板可持有，开板后回封失败则清掉剩余仓位。</span></p>
@@ -779,7 +782,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v31-20261116-auction-book-g';
+  const VERSION = 'auction-v32-20261116-auction-book-g';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
