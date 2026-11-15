@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-entry-25-75-confirm-0946-v28">
+  <meta name="apanel-build" content="2026-11-16-reason-chart-flow-v29">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -305,6 +305,32 @@ footer p{margin:3px 0}
 .reason-fact{padding:9px;border:1px solid #e2d8c8;border-radius:10px;background:#faf6ed}
 .reason-fact small{display:block;color:#8b928e;font-size:10px}
 .reason-fact b{display:block;margin-top:4px;color:var(--forest);font:700 13px/1.35 Consolas,monospace}
+.intraday-card,.flow-card,.probability-card{margin-top:13px;padding:12px;border:1px solid #ddd4c5;border-radius:13px;background:#fbf8f1}
+.intraday-head,.flow-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.intraday-head h4,.flow-head h4{margin:4px 0 0;color:var(--forest);font:700 16px/1.3 Georgia,"Songti SC",serif}
+.chart-legend{display:flex;align-items:center;gap:10px;color:#71807a;font-size:10px;white-space:nowrap}
+.chart-legend span::before{content:"";display:inline-block;width:16px;height:3px;margin-right:5px;border-radius:2px;vertical-align:middle}
+.chart-legend .price-key::before{background:#2877a5}.chart-legend .avg-key::before{background:#d38a2d}
+.intraday-canvas-wrap{position:relative;height:220px;margin-top:10px;border-radius:10px;background:linear-gradient(#f7f4ec,#fffdf8);overflow:hidden}
+#reasonIntradayChart{display:block;width:100%;height:100%}
+.chart-status{margin:8px 0 0;color:#78857f;font-size:10px;line-height:1.5}
+.flow-head>b{color:var(--forest);font:700 13px/1.5 Consolas,monospace}
+.flow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.flow-item{padding:8px;border:1px solid #e6ddce;border-radius:9px;background:#fff}
+.flow-item small{display:block;color:#84908a;font-size:9.5px}
+.flow-item b{display:block;margin-top:4px;font:700 12px/1.35 Consolas,monospace}
+.flow-item span{display:block;margin-top:2px;font-size:9px;color:#89938e}
+.flow-item.inflow b{color:var(--red)}.flow-item.outflow b{color:var(--teal)}
+.flow-empty{padding:14px;color:#7f8b86;font-size:11px;text-align:center}
+.flow-note{margin:8px 0 0;color:#89948f;font-size:9.5px;line-height:1.5}
+.probability-card{display:grid;grid-template-columns:118px 1fr;align-items:center;gap:14px;background:linear-gradient(135deg,#173d35,#0f2f29);border-color:#143d35}
+.probability-number strong{display:block;color:#f4ca72;font:700 38px/.95 Georgia,serif}
+.probability-number small{display:block;margin-top:6px;color:#bfd2cb;font-size:10px}
+.probability-copy b{display:block;color:#fffdf8;font-size:14px}
+.probability-copy p{margin:5px 0 0;color:#c1d2cc;font-size:10.5px;line-height:1.55}
+.probability-meter{height:7px;margin-top:9px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}
+.probability-meter i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#a6ce6c,#efc56e,#e87661)}
+.probability-note{margin:7px 0 0;color:#9fb7ae;font-size:9px}
 .reason-detail{margin-top:13px;padding-top:2px}
 .reason-detail p{margin:8px 0 0;color:#53635e;font-size:12px;line-height:1.75}
 .reason-detail p::before{content:"";display:inline-block;width:5px;height:5px;margin:0 7px 2px 0;border-radius:50%;background:var(--amber)}
@@ -529,6 +555,22 @@ body.modal-open{overflow:hidden}
   .reason-fact{padding:11px 10px}
   .reason-fact small{font-size:11px}
   .reason-fact b{font-size:15px}
+  .intraday-card,.flow-card,.probability-card{padding:13px;border-radius:13px}
+  .intraday-head h4,.flow-head h4{font-size:18px}
+  .chart-legend{font-size:10.5px}
+  .intraday-canvas-wrap{height:235px}
+  .chart-status{font-size:11.5px}
+  .flow-head>b{font-size:14px}
+  .flow-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .flow-item{padding:9px}
+  .flow-item small{font-size:11px}
+  .flow-item b{font-size:14px}
+  .flow-item span{font-size:10px}
+  .flow-note{font-size:10.5px}
+  .probability-card{grid-template-columns:105px 1fr;padding:15px 13px}
+  .probability-number strong{font-size:40px}
+  .probability-number small,.probability-copy p{font-size:11px}
+  .probability-copy b{font-size:15px}
   .reason-detail p{font-size:13px;line-height:1.75}
   .reason-risk{font-size:12px;line-height:1.65}
   .empty-state,.empty{font-size:14px;line-height:1.65}
@@ -680,7 +722,21 @@ body.modal-open{overflow:hidden}
       </div>
       <p id="reasonBrief" class="reason-lead"></p>
       <div id="reasonFacts" class="reason-facts"></div>
+      <div class="intraday-card">
+        <div class="intraday-head">
+          <div><span class="section-label">INTRADAY</span><h4>当日分时与均价</h4></div>
+          <div class="chart-legend"><span class="price-key">价格</span><span class="avg-key">分时均价</span></div>
+        </div>
+        <div class="intraday-canvas-wrap"><canvas id="reasonIntradayChart"></canvas></div>
+        <p id="reasonChartStatus" class="chart-status">正在读取当日分时…</p>
+      </div>
+      <div class="flow-card">
+        <div class="flow-head"><div><span class="section-label">ORDER FLOW</span><h4>大单资金明细</h4></div><b id="flowMain"></b></div>
+        <div id="reasonFlow" class="flow-grid"><div class="flow-empty">正在读取资金流…</div></div>
+        <p class="flow-note">正数为净流入，负数为净流出；使用东方财富当日资金流口径。</p>
+      </div>
       <div id="reasonDetail" class="reason-detail"></div>
+      <div id="reasonProbability" class="probability-card"></div>
       <p id="reasonRisk" class="reason-risk"></p>
     </section>
   </div>
@@ -693,12 +749,13 @@ body.modal-open{overflow:hidden}
     zt: 'https://push2ex.eastmoney.com/getTopicZTPool',
     yzt: 'https://push2ex.eastmoney.com/getYesterdayZTPool',
     baseline: 'https://push2his.eastmoney.com/api/qt/stock/trends2/get',
+    flow: 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get',
     quote: 'https://qt.gtimg.cn/q=',
     archive: archiveOverride || 'https://yuovo.github.io/a-share-analysis-panel/auction-daily.js'
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v28-20261116-entry-25-75-confirm-0946';
+  const VERSION = 'auction-v29-20261116-reason-chart-flow';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -737,6 +794,7 @@ body.modal-open{overflow:hidden}
     closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {},
     confirmAt: 0, confirmLoading: false
   };
+  let reasonRequestSerial = 0;
 
   const $ = (id) => document.getElementById(id);
   const pad = (n) => String(n).padStart(2, '0');
@@ -818,13 +876,16 @@ body.modal-open{overflow:hidden}
   function closeReasonModal() {
     const modal = $('reasonModal');
     if (!modal) return;
+    reasonRequestSerial++;
     modal.hidden = true;
     document.body.classList.remove('modal-open');
   }
 
-  function openReasonModal(code, kind) {
+  async function openReasonModal(code, kind) {
     const row = state.marketPool?.rows?.find((x) => String(x.code) === String(code));
     if (!row) return;
+    const requestId = ++reasonRequestSerial;
+    const day = state.marketPool?.day || marketDay();
     const reason = kind === 'candidate' ? candidateReasonOf(row) : limitReasonOf(row);
     $('reasonEyebrow').textContent = kind === 'candidate'
       ? 'NEXT-DAY CANDIDATE · 入选判断'
@@ -835,12 +896,27 @@ body.modal-open{overflow:hidden}
       `<div class="reason-fact"><small>${esc(label)}</small><b>${esc(value)}</b></div>`
     ).join('');
     $('reasonDetail').innerHTML = reason.detail.map((text) => `<p>${esc(text)}</p>`).join('');
+    renderProbability(row);
     $('reasonRisk').textContent = kind === 'candidate'
       ? '这是盘后候选判断，不代表次日必涨；最终执行必须以 09:25 竞价和 9:30–9:45 分时承接确认。'
       : '封板原因描述的是当日已经发生的盘口结构；次日仍可能受竞价、板块分歧和大盘环境影响。';
+    $('reasonChartStatus').textContent = '正在读取当日分时…';
+    $('flowMain').textContent = '读取中';
+    $('reasonFlow').innerHTML = '<div class="flow-empty">正在读取资金流…</div>';
     $('reasonModal').hidden = false;
     document.body.classList.add('modal-open');
     $('reasonClose').focus();
+    const [trendResult, flowResult] = await Promise.allSettled([
+      trendsForDay(row.code, day),
+      orderFlowForDay(row.code, day)
+    ]);
+    if (requestId !== reasonRequestSerial || $('reasonModal').hidden) return;
+    const rows = trendResult.status === 'fulfilled' ? trendResult.value : [];
+    const chartReady = drawIntradayChart(rows);
+    $('reasonChartStatus').textContent = chartReady
+      ? `${displayDay(day)} · 09:30–15:00 · ${rows.length}个分钟点`
+      : `${displayDay(day)} 分时数据暂不可用`;
+    renderFlow(flowResult.status === 'fulfilled' ? flowResult.value : null);
   }
 
   document.addEventListener('click', (event) => {
@@ -1013,7 +1089,12 @@ body.modal-open{overflow:hidden}
         ? `换手${turnover.toFixed(2)}%，成交活跃度适中`
         : '';
     const amountText = Number(x.amount) > 0 ? `成交额约${formatMoney(x.amount)}` : '';
-    const fundText = Number(x.sealAmount) > 0 ? `封板资金参考约${formatMoney(x.sealAmount)}` : '';
+    const sealRatio = Number(x.amount) > 0 && Number(x.sealAmount) > 0
+      ? Number(x.sealAmount) / Number(x.amount) * 100
+      : NaN;
+    const fundText = Number(x.sealAmount) > 0
+      ? `封单额约${formatMoney(x.sealAmount)}${Number.isFinite(sealRatio) ? `，占成交${sealRatio.toFixed(2)}%` : ''}`
+      : '';
     const liquidityText = [turnoverText, amountText, fundText].filter(Boolean).join('，');
     return {
       brief: `${phase.short}、${x.sectorLeader ? '板块龙头' : `板块第${x.sectorRank}`}、${breaks ? `开板${breaks}次` : '未开板'}，封板结构${x.sectorLeader && breaks <= 1 ? '较强' : '仍需次日确认'}`,
@@ -1028,7 +1109,8 @@ body.modal-open{overflow:hidden}
         ['开板次数', breaks ? `${breaks}次` : '未开板'],
         ['板块地位', `第${x.sectorRank} · ${x.sectorLeader ? '龙头' : '非龙头'}`],
         ['成交额', formatMoney(x.amount)],
-        ['封板资金', formatMoney(x.sealAmount)]
+        ['封单额', formatMoney(x.sealAmount)],
+        ['封单占成交', Number.isFinite(sealRatio) ? `${sealRatio.toFixed(2)}%` : '--']
       ].filter(([, value]) => value && value !== '--')
     };
   }
@@ -1052,6 +1134,183 @@ body.modal-open{overflow:hidden}
       ],
       facts: [...base.facts, ['候选评分', Number.isFinite(score) ? fmt(score, 1) : '--']]
     };
+  }
+
+  function flowMoney(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return { text: '--', tone: '' };
+    if (Math.abs(n) < 0.5) return { text: '0', tone: '' };
+    return {
+      text: `${n > 0 ? '+' : '-'}${formatMoney(Math.abs(n))}`,
+      tone: n > 0 ? 'inflow' : 'outflow'
+    };
+  }
+
+  function probabilityOf(x) {
+    const score = Number(x?.candidateScore);
+    if (!Number.isFinite(score)) return null;
+    let value = 12 + Math.max(0, score - 58) * 0.45;
+    if (Number(x.firstTime) <= 100000) value += 3;
+    else if (Number(x.firstTime) > 130000) value -= 3;
+    if (Number(x.breaks) === 0) value += 3;
+    else if (Number(x.breaks) >= 2) value -= 3;
+    if (x.sectorLeader) value += 2;
+    else value -= 2;
+    if (Number(x.boards) === 1) value += 2;
+    else if (Number(x.boards) === 2) value += 1;
+    else if (Number(x.boards) >= 4) value -= 3;
+    const probability = Math.round(clamp(value, 3, 45));
+    const label = probability >= 30 ? 'A级 · 强势'
+      : probability >= 22 ? 'B级 · 重点关注'
+        : probability >= 14 ? 'C级 · 一般'
+          : 'D级 · 偏低';
+    return {
+      probability, label,
+      note: `基于预评分 ${fmt(score, 1)}、${x.sectorLeader ? '板块龙头' : `板块第${x.sectorRank}`}、${Number(x.breaks) ? `开板${x.breaks}次` : '未开板'}和 ${x.boards}板身位综合估算；不含明日竞价，属于盘后模型概率。`
+    };
+  }
+
+  async function trendsForDay(code, day) {
+    const secid = code.startsWith('sh') ? `1.${code.slice(2)}` : `0.${code.slice(2)}`;
+    const url = `${API.baseline}?secid=${secid}` +
+      '&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13' +
+      `&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&ndays=5&ut=${EM_FLOW_UT}`;
+    let payload = null;
+    try {
+      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) payload = await response.json();
+    } catch (_) {}
+    if (!payload) {
+      try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
+    }
+    return (Array.isArray(payload?.data?.trends) ? payload.data.trends : [])
+      .map((raw) => String(raw || '').split(','))
+      .filter((p) => String(p[0] || '').slice(0, 10).replaceAll('-', '') === String(day))
+      .map((p) => ({
+        time: String(p[0] || '').slice(11, 16),
+        price: Number(p[2]),
+        high: Number(p[3]),
+        low: Number(p[4]),
+        volume: Number(p[5]),
+        amount: Number(p[6]),
+        avg: Number(p[7])
+      }))
+      .filter((x) => x.time && Number.isFinite(x.price) && x.price > 0);
+  }
+
+  async function orderFlowForDay(code, day) {
+    const secid = code.startsWith('sh') ? `1.${code.slice(2)}` : `0.${code.slice(2)}`;
+    const url = `${API.flow}?lmt=20&klt=101` +
+      '&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63' +
+      `&secid=${secid}`;
+    let payload = null;
+    try {
+      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) payload = await response.json();
+    } catch (_) {}
+    if (!payload) {
+      try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
+    }
+    const line = (Array.isArray(payload?.data?.klines) ? payload.data.klines : [])
+      .map((raw) => String(raw || '').split(','))
+      .find((p) => String(p[0] || '').replaceAll('-', '') === String(day));
+    if (!line) return null;
+    return {
+      main: Number(line[1]),
+      small: Number(line[2]),
+      medium: Number(line[3]),
+      large: Number(line[4]),
+      superLarge: Number(line[5]),
+      mainPct: Number(line[6]),
+      closePct: Number(line[12])
+    };
+  }
+
+  function drawIntradayChart(rows) {
+    const canvas = $('reasonIntradayChart');
+    if (!canvas) return;
+    const box = canvas.parentElement.getBoundingClientRect();
+    const width = Math.max(260, Math.round(box.width));
+    const height = Math.max(190, Math.round(box.height));
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    if (!rows?.length) return false;
+    const pad = { left: 42, right: 12, top: 15, bottom: 28 };
+    const chartW = width - pad.left - pad.right;
+    const chartH = height - pad.top - pad.bottom;
+    const values = rows.flatMap((x) => [x.price, x.avg]).filter((v) => Number.isFinite(v) && v > 0);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = Math.max(.01, max - min);
+    const x = (i) => pad.left + (rows.length <= 1 ? 0 : i / (rows.length - 1) * chartW);
+    const y = (v) => pad.top + (max - v) / span * chartH;
+    ctx.strokeStyle = '#e7dfd2';
+    ctx.lineWidth = 1;
+    ctx.font = '10px Consolas, monospace';
+    ctx.fillStyle = '#8a948f';
+    for (let i = 0; i <= 4; i++) {
+      const gy = pad.top + chartH * i / 4;
+      ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(width - pad.right, gy); ctx.stroke();
+      const value = max - span * i / 4;
+      ctx.fillText(value.toFixed(2), 3, gy + 3);
+    }
+    const labels = [0, Math.round((rows.length - 1) / 2), rows.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+    labels.forEach((i) => {
+      const tx = x(i);
+      ctx.fillStyle = '#8a948f';
+      ctx.fillText(rows[i].time, Math.min(width - pad.right - 32, Math.max(pad.left - 12, tx - 16)), height - 8);
+    });
+    const drawLine = (key, color, lineWidth) => {
+      ctx.beginPath();
+      rows.forEach((row, i) => {
+        if (!Number.isFinite(row[key])) return;
+        const px = x(i), py = y(row[key]);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    };
+    drawLine('avg', '#d38a2d', 1.5);
+    drawLine('price', '#2877a5', 2);
+    return true;
+  }
+
+  function renderFlow(flow) {
+    if (!flow) {
+      $('flowMain').textContent = '数据不可用';
+      $('reasonFlow').innerHTML = '<div class="flow-empty">当日资金流数据暂不可用</div>';
+      return;
+    }
+    const main = flowMoney(flow.main);
+    $('flowMain').textContent = `主力 ${main.text}`;
+    const rows = [
+      ['超大单', flow.superLarge],
+      ['大单', flow.large],
+      ['中单', flow.medium],
+      ['小单', flow.small]
+    ];
+    $('reasonFlow').innerHTML = rows.map(([label, value]) => {
+      const money = flowMoney(value);
+      return `<div class="flow-item ${money.tone}"><small>${label}</small><b>${esc(money.text)}</b><span>${money.tone === 'inflow' ? '净流入' : money.tone === 'outflow' ? '净流出' : '净额'}</span></div>`;
+    }).join('');
+  }
+
+  function renderProbability(x) {
+    const result = probabilityOf(x);
+    const box = $('reasonProbability');
+    if (!result) {
+      box.innerHTML = '<div class="flow-empty">涨停概率数据不足</div>';
+      return;
+    }
+    box.innerHTML = `<div class="probability-number"><strong>${result.probability}%</strong><small>${esc(result.label)}</small></div>
+      <div class="probability-copy"><b>明日涨停概率 · 模型估算</b><div class="probability-meter"><i style="width:${Math.min(100, result.probability * 2.2)}%"></i></div><p>${esc(result.note)}</p><p class="probability-note">概率越高代表盘后条件越强，不等于必然涨停。</p></div>`;
   }
 
   function boardDowngraded(code) {
