@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-reason-chart-flow-v29">
+  <meta name="apanel-build" content="2026-11-16-auction-book-g-v30">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -144,10 +144,23 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .pick-score{font:700 27px/1 Georgia,serif;color:var(--teal)}
 .pick-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
 .pick-meta span{padding:4px 8px;border-radius:999px;background:#f2ece0;color:#6c6559;font-size:10.5px}
-.pick-body{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.pick-body{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
 .pick-body div{padding-top:8px;border-top:1px solid #e4ddd1}
 .pick-body small{display:block;color:#8b928e;font-size:9px}
 .pick-body b{display:block;margin-top:4px;color:var(--ink);font:700 12.5px/1.3 Consolas,monospace}
+.g-value.buy{color:var(--red)}.g-value.sell{color:var(--teal)}
+.seal-buyability{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding:10px 11px;border:1px solid #ded5c7;border-radius:11px;background:#faf6ed}
+.seal-buyability small{display:block;color:#8b928e;font-size:9px}
+.seal-buyability b{display:block;margin-top:3px;color:var(--forest);font:700 12px/1.4 Consolas,monospace}
+.seal-buyability .hard b{color:#a9343d}.seal-buyability .warn b{color:#a36520}.seal-buyability .ok b{color:#17624f}
+.seal-buyability p{grid-column:1/-1;margin:1px 0 0;color:#786e5f;font-size:10px;line-height:1.55}
+.announcement-check{margin-top:10px;padding:10px 11px;border:1px solid #ddd5c8;border-radius:11px;background:#f8f4eb}
+.announcement-check b{display:block;color:#5c695f;font-size:11px}
+.announcement-check span{display:block;margin-top:4px;color:#718078;font-size:10.5px;line-height:1.55}
+.announcement-check i{display:block;margin-top:3px;color:#7f8b84;font-size:10px;font-style:normal;line-height:1.5}
+.announcement-check.risk{border-color:#e2b8bb;background:#fbecee}.announcement-check.risk b{color:#9d343c}
+.announcement-check.ok{border-color:#bed8cd;background:#eef8f3}.announcement-check.ok b{color:#17624f}
+.announcement-check.missing{border-color:#e3cba7;background:#fbf4e7}.announcement-check.missing b{color:#93611f}
 .pick-note{margin:12px 0 0;color:#52625d;font-size:11.5px;line-height:1.65}
 .pick-rule{margin-top:10px;padding:9px 10px;border-radius:10px;background:#edf6f2;color:#285d50;font-size:11px;line-height:1.6}
 .trade-plan{
@@ -187,6 +200,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .close-review-grid strong{display:block;margin-top:3px;font:700 12px/1.3 Consolas,monospace;color:var(--ink)}
 .close-reason{margin:8px 0 0;color:#665f55;font-size:10.5px;line-height:1.6}
 .pick-meta .promoted{background:#dff1e9;color:#17624f;font-weight:700}
+.pick-meta .risk-tag{background:var(--red-soft);color:#96373f;font-weight:700}
 .source-note{margin:0;padding:10px 15px;border-top:1px solid var(--line);background:#f7f2e9;color:#6e746f;font-size:10.5px;line-height:1.65}
 .source-note b{color:#5d513f}
 .candidate-board{padding:12px 14px 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -439,9 +453,17 @@ body.modal-open{overflow:hidden}
   .track-badge{min-height:28px;padding:5px 10px;font-size:12px}
   .pick-meta{gap:7px;margin-top:12px}
   .pick-meta span{padding:5px 9px;font-size:12px;line-height:1.35}
-  .pick-body{gap:8px;margin-top:15px}
+  .pick-body{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 8px;margin-top:15px}
   .pick-body small{font-size:11px;line-height:1.35}
   .pick-body b{margin-top:5px;font-size:14px}
+  .seal-buyability{padding:11px;gap:9px}
+  .seal-buyability small{font-size:10.5px}
+  .seal-buyability b{font-size:13.5px}
+  .seal-buyability p{font-size:11.5px}
+  .announcement-check{padding:11px}
+  .announcement-check b{font-size:12.5px}
+  .announcement-check span{font-size:11.5px}
+  .announcement-check i{font-size:11px}
   .track-price{gap:9px;margin-top:13px;padding-top:12px}
   .track-price small{font-size:11px}
   .track-price b{font-size:14px}
@@ -678,8 +700,8 @@ body.modal-open{overflow:hidden}
       <summary><span>候选评分明细</span><b id="candidateCount">0只</b></summary>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>序</th><th>标的</th><th id="finalPctHeader">收盘</th><th>板块 / 阶段</th><th>竞价</th><th>最终分</th><th>状态</th></tr></thead>
-          <tbody id="candidateBody"><tr><td colspan="6" class="empty">等待数据</td></tr></tbody>
+          <thead><tr><th>序</th><th>标的</th><th id="finalPctHeader">收盘</th><th>板块 / 阶段</th><th>竞价</th><th>最终分</th><th>盘口G</th><th>状态</th></tr></thead>
+          <tbody id="candidateBody"><tr><td colspan="8" class="empty">等待数据</td></tr></tbody>
         </table>
       </div>
     </details>
@@ -750,12 +772,13 @@ body.modal-open{overflow:hidden}
     yzt: 'https://push2ex.eastmoney.com/getYesterdayZTPool',
     baseline: 'https://push2his.eastmoney.com/api/qt/stock/trends2/get',
     flow: 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get',
+    announce: 'https://np-anotice-stock.eastmoney.com/api/security/ann',
     quote: 'https://qt.gtimg.cn/q=',
     archive: archiveOverride || 'https://yuovo.github.io/a-share-analysis-panel/auction-daily.js'
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v29-20261116-reason-chart-flow';
+  const VERSION = 'auction-v30-20261116-auction-book-g';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
@@ -795,6 +818,7 @@ body.modal-open{overflow:hidden}
     confirmAt: 0, confirmLoading: false
   };
   let reasonRequestSerial = 0;
+  const announcementCache = new Map();
 
   const $ = (id) => document.getElementById(id);
   const pad = (n) => String(n).padStart(2, '0');
@@ -1362,11 +1386,112 @@ body.modal-open{overflow:hidden}
     let shareUnit = 100;
     if (amount > 0 && last > 0 && volume > 0) shareUnit = (amount / last / volume) < 10 ? 1 : 100;
     volume *= shareUnit;
+    const bidPrices = [10, 12, 14, 16, 18].map((i) => Number(p[i]) || 0);
+    const bidVolumes = [11, 13, 15, 17, 19].map((i) => Number(p[i]) || 0);
+    const askPrices = [20, 22, 24, 26, 28].map((i) => Number(p[i]) || 0);
+    const askVolumes = [21, 23, 25, 27, 29].map((i) => Number(p[i]) || 0);
     return {
       code, name: p[1] || code, price: last, prevClose: prev,
       open: Number(p[5]), high: Number(p[33]), low: Number(p[34]),
-      pct: Number(p[32]), amount, volume, time: String(p[30] || '')
+      pct: Number(p[32]), amount, volume, time: String(p[30] || ''),
+      bidPrices, bidVolumes, askPrices, askVolumes
     };
+  }
+
+  function orderBookStats(q) {
+    const bidVolume = (q?.bidVolumes || []).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    const askVolume = (q?.askVolumes || []).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    const total = bidVolume + askVolume;
+    return {
+      bidVolume, askVolume,
+      ratio: total > 0 ? (bidVolume - askVolume) / total * 100 : NaN
+    };
+  }
+
+  function openLimitPrice(q, code, name) {
+    const prev = Number(q?.prevClose);
+    if (!(prev > 0)) return NaN;
+    const pct = limitUpThreshold(code, name) / 100;
+    return Math.round((prev * (1 + pct) + Number.EPSILON) * 100) / 100;
+  }
+
+  function sealedBuyability(q, floatCap) {
+    const book = orderBookStats(q);
+    const limit = openLimitPrice(q?.code, q?.code, q?.name);
+    if (!Number.isFinite(book.ratio)) {
+      return { label: '盘口未取到', tone: 'unknown', sealAmount: NaN, capPct: NaN, detail: '竞价盘口数据缺失。', ratio: NaN };
+    }
+    const open = Number(q?.open);
+    if (!(limit > 0) || !(open >= limit - .005)) {
+      return { label: '可买', tone: 'ok', sealAmount: 0, capPct: 0, detail: '未开在涨停价，按买入区间执行首笔 25%。', ratio: book.ratio };
+    }
+    const bidPrice = Number(q?.bidPrices?.[0]);
+    const bidVolume = Number(q?.bidVolumes?.[0]);
+    const sealAmount = bidPrice > 0 && bidVolume > 0 ? bidPrice * bidVolume * 100 : NaN;
+    const capPct = sealAmount > 0 && Number(floatCap) > 0 ? sealAmount / Number(floatCap) * 100 : NaN;
+    const onePrice = Number(q?.high) > 0 && Number(q?.low) > 0 &&
+      Math.abs(Number(q.high) - Number(q.low)) < .005 &&
+      Math.abs(open - Number(q.high)) < .005;
+    if (onePrice || sealAmount >= 500000000 || (Number.isFinite(capPct) && capPct >= 5)) {
+      return { label: '难排队', tone: 'hard', sealAmount, capPct, detail: '封单很大或为一字板，首笔 25% 很可能排不到。', ratio: book.ratio };
+    }
+    if (Number.isFinite(capPct) && capPct >= 2) {
+      return { label: '排队偏难', tone: 'warn', sealAmount, capPct, detail: '封单达到流通市值 2%–5%，首笔可能排队。', ratio: book.ratio };
+    }
+    return { label: '可排队', tone: 'ok', sealAmount, capPct, detail: '封单规模相对可排，仍需按真实队列为准。', ratio: book.ratio };
+  }
+
+  async function announcementCheck(code) {
+    const now = Date.now();
+    const cached = announcementCache.get(code);
+    if (cached && now - cached.cachedAt < 15 * 60000) return cached.value;
+    const numeric = String(code || '').replace(/^(sh|sz|bj)/, '');
+    const url = `${API.announce}?sr=-1&page_size=50&page_index=1&ann_type=A&client_source=web&stock_list=${numeric}`;
+    let payload = null;
+    try {
+      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) payload = await response.json();
+    } catch (_) {}
+    if (!payload) {
+      try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
+    }
+    if (!payload?.data?.list) {
+      const missing = { status: 'missing', risk: false, latestDate: '', latestTitle: '', titles: [] };
+      announcementCache.set(code, { cachedAt: now, value: missing });
+      return missing;
+    }
+    const cutoff = new Date(now - 30 * 86400000).toISOString().slice(0, 10);
+    const recent = payload.data.list
+      .map((item) => ({
+        date: String(item.display_time || item.notice_date || '').slice(0, 10),
+        title: String(item.title || '')
+      }))
+      .filter((item) => item.date && item.date >= cutoff && item.title);
+    const riskPattern = /(立案|调查|行政处罚|监管函|问询函|警示函|关注函|退市风险|终止上市|重大诉讼|违规|风险提示|业绩预亏|预亏|减持|股票交易异常波动)/;
+    const risky = recent.filter((item) => riskPattern.test(item.title));
+    const value = {
+      status: 'ok',
+      risk: risky.length > 0,
+      latestDate: recent[0]?.date || '',
+      latestTitle: recent[0]?.title || '',
+      titles: risky.slice(0, 3).map((item) => item.title)
+    };
+    announcementCache.set(code, { cachedAt: now, value });
+    return value;
+  }
+
+  function announcementMarkup(pick) {
+    const item = pick?.announcement;
+    if (!item) {
+      return '<div class="announcement-check pending"><b>公告核查</b><span>等待自动核查</span></div>';
+    }
+    if (item.status === 'missing') {
+      return '<div class="announcement-check missing"><b>公告未核查</b><span>公告接口未返回，未据此加分或减仓。</span></div>';
+    }
+    if (item.risk) {
+      return `<div class="announcement-check risk"><b>公告风险 · 已降至≤5%</b><span>${esc(item.titles.join('；'))}</span></div>`;
+    }
+    return `<div class="announcement-check ok"><b>公告核查通过</b><span>近30日未发现风险关键词${item.latestDate ? ` · 最新 ${esc(item.latestDate)}` : ''}${item.latestTitle ? `<i>${esc(item.latestTitle)}</i>` : ''}</span></div>`;
   }
 
   async function quotes(codes, onProgress) {
@@ -1487,7 +1612,11 @@ body.modal-open{overflow:hidden}
         failureReason: String(p.failureReason || ''),
         closeReviewedAt: String(p.closeReviewedAt || ''),
         advanced: Boolean(p.advanced),
-        candidateAdvanced: Boolean(p.candidateAdvanced)
+        candidateAdvanced: Boolean(p.candidateAdvanced),
+        scoreG: Number(p.scoreG) || 0,
+        bookRatio: Number(p.bookRatio),
+        buyability: p.buyability || null,
+        announcement: p.announcement || null
       };
     });
     return {
@@ -2017,6 +2146,11 @@ body.modal-open{overflow:hidden}
     const b = Math.max(0, Number(breaks) || 0);
     return b === 0 ? 4 : b === 1 ? 2 : b === 2 ? 0 : -5;
   }
+  function scoreG(bookRatio) {
+    const ratio = Number(bookRatio);
+    if (!Number.isFinite(ratio)) return 0;
+    return ratio >= 50 ? 6 : ratio >= 20 ? 4 : ratio >= 0 ? 2 : 0;
+  }
 
   function cycleOf(topGap, marketHeight, highOpen) {
     if (!Number.isFinite(topGap) || topGap < -3 || highOpen < .35) return { label: '退潮期', note: '空仓或极轻仓，不打高位板' };
@@ -2113,16 +2247,20 @@ body.modal-open{overflow:hidden}
       const auctionQ = exactAuctionQuote(q);
       const h = Math.max(1, Number(x.ylbc || x.lbc) || 1);
       const ydayAmount = Number(x.amount) || NaN;
+      const book = orderBookStats(q);
+      const buyability = sealedBuyability(q, Number(x.ltsz) || 0);
       return {
         code, name: x.n || code, sector: String(x.hybk || '其他'), height: h,
         firstTime: firstTime(x), breaks: Math.max(0, Number(x.zbc) || 0),
         gap: gapOf(q), price: q?.open > 0 ? q.open : q?.price, last: q?.price,
         auctionVolume: auctionQ ? Number(q?.volume) || NaN : NaN,
         auctionAmount: auctionQ ? Number(q?.amount) || NaN : NaN,
-        ydayAmount, amountRatio: NaN, sectorCount: 0, sectorRank: 0,
+        ydayAmount, floatCap: Number(x.ltsz) || 0,
+        bookRatio: book.ratio, bidVolume: book.bidVolume, askVolume: book.askVolume,
+        buyability, amountRatio: NaN, sectorCount: 0, sectorRank: 0,
         sectorHigher: false, sectorLeaderGap: NaN, downgraded: boardDowngraded(code),
         volRatio: NaN, ratioMode: '成交额占昨额代理', baselineDays: 0,
-        scoreA: 0, scoreB: 0, scoreC: 0, scoreD: 0, scoreE: 0, scoreF: 0,
+        scoreA: 0, scoreB: 0, scoreC: 0, scoreD: 0, scoreE: 0, scoreF: 0, scoreG: 0,
         total: NaN, filtered: '', watchOnly: false
       };
     });
@@ -2150,6 +2288,7 @@ body.modal-open{overflow:hidden}
       else if (!Number.isFinite(c.ydayAmount)) c.filtered = '昨日成交额缺失';
       else if (c.gap < -7) c.filtered = '低开超过-7%';
       else if (c.gap > 6.5) c.filtered = '高开超过6.5%';
+      else if (Number.isFinite(c.bookRatio) && c.bookRatio < -30) c.filtered = '竞价委比低于-30%';
       else if (c.code === rep.code && repGap < -3) c.filtered = '最高标竞价低于-3%';
       else if (!Number.isFinite(c.firstTime)) c.filtered = '昨日封板时间缺失';
       else if (c.firstTime > 143000) c.filtered = '昨日14:30后封板';
@@ -2205,12 +2344,12 @@ body.modal-open{overflow:hidden}
     // 回测结论：市场越热次日 EV 越差（热 >60 家 -0.78%，冷 20~40 家 -0.53%），
     // 所以改为按昨日涨停家数反向调节，而不是只看最高标竞价
     const poolSize = Array.isArray(pool.rows) ? pool.rows.length : 0;
-    let env = { threshold: 58, multiplier: 1, maxPicks: 2, poolSize };
-    if (poolSize >= 60) env = { threshold: 63, multiplier: .9, maxPicks: 1, poolSize };
-    else if (poolSize >= 20 && poolSize < 40) env = { threshold: 56, multiplier: 1.05, maxPicks: 2, poolSize };
-    else if (poolSize > 0 && poolSize < 20) env = { threshold: 70, multiplier: 1, maxPicks: 0, poolSize };
+    let env = { threshold: 61, multiplier: 1, maxPicks: 2, poolSize };
+    if (poolSize >= 60) env = { threshold: 66, multiplier: .9, maxPicks: 1, poolSize };
+    else if (poolSize >= 20 && poolSize < 40) env = { threshold: 59, multiplier: 1.05, maxPicks: 2, poolSize };
+    else if (poolSize > 0 && poolSize < 20) env = { threshold: 73, multiplier: 1, maxPicks: 0, poolSize };
     if (cycle.label === '退潮期') {
-      env.threshold = Math.max(env.threshold, 63);
+      env.threshold = Math.max(env.threshold, 66);
       env.maxPicks = Math.min(env.maxPicks, 1);
     } else if (['冰点期', '高潮期', '分歧期'].includes(cycle.label)) env.maxPicks = Math.min(env.maxPicks, 1);
 
@@ -2220,14 +2359,15 @@ body.modal-open{overflow:hidden}
       const cc = scoreC(c.height, maxHeight);
       const d = scoreD(c.firstTime);
       const e = scoreE(c.breaks);
+      const g = scoreG(c.bookRatio);
       let f = c.sectorCount >= 3 ? 6 : c.sectorCount === 2 ? 4 : 0;
       if (c.sectorHigher && Number.isFinite(c.sectorLeaderGap) && Number.isFinite(c.gap)) {
         if (c.sectorLeaderGap > c.gap + 2) f -= 6;
         else if (c.sectorLeaderGap < c.gap - 1) f += 2;
       }
       f = clamp(f, -8, 6);
-      c.scoreA = a; c.scoreB = b; c.scoreC = cc; c.scoreD = d; c.scoreE = e; c.scoreF = f;
-      c.total = Math.round((48 + a + b + cc + d + e + f) * env.multiplier * 10) / 10;
+      c.scoreA = a; c.scoreB = b; c.scoreC = cc; c.scoreD = d; c.scoreE = e; c.scoreF = f; c.scoreG = g;
+      c.total = Math.round((48 + a + b + cc + d + e + f + g) * env.multiplier * 10) / 10;
       if (c.total < env.threshold) c.filtered = `低于动态门槛${env.threshold}分`;
     });
 
@@ -2235,6 +2375,10 @@ body.modal-open{overflow:hidden}
       .sort((a, b) => b.total - a.total || b.gap - a.gap || a.code.localeCompare(b.code));
     const picks = ranked.filter((c) => !c.downgraded).slice(0, env.maxPicks).map((c, i) => ({
       ...c, rank: i + 1, stage: stage(c.height), position: positionOf(c, cycle.label)
+    }));
+    await Promise.all(picks.map(async (pick) => {
+      pick.announcement = await announcementCheck(pick.code);
+      if (pick.announcement.risk) pick.position = '≤5%';
     }));
     const rankMap = Object.fromEntries(picks.map((p) => [p.code, p.rank]));
     all.forEach((c) => { c.rank = rankMap[c.code] || 0; });
@@ -2285,6 +2429,8 @@ body.modal-open{overflow:hidden}
       const plan = tradePlanOf(c);
       const promoted = Boolean(c.candidateAdvanced || isPriorCandidate(c.code));
       const reviewed = Boolean(c.closeStatus && Number.isFinite(Number(c.closePct)));
+      const bookRatio = c.bookRatio == null || c.bookRatio === '' ? NaN : Number(c.bookRatio);
+      const seal = c.buyability || { label: '盘口未取到', tone: 'unknown', sealAmount: NaN, detail: '竞价盘口数据缺失。' };
       return `
       <article class="pick-card">
         <div class="pick-top">
@@ -2296,12 +2442,20 @@ body.modal-open{overflow:hidden}
           ${c.strategy === '低吸' ? '<span class="promoted">低吸反核</span>' : ''}
           <span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span>
           ${promoted ? '<span class="promoted">已晋级</span>' : ''}
+          ${c.announcement?.risk ? '<span class="risk-tag">公告风险</span>' : ''}
         </div>
         <div class="pick-body">
           <div><small>竞价参考</small><b>${price(c.price)}</b></div>
           <div><small>竞价涨幅</small><b>${sign(c.gap)}%</b></div>
           <div><small>昨日首封</small><b>${timeText(c.firstTime)}</b></div>
+          <div><small>G项盘口</small><b class="${Number.isFinite(bookRatio) ? (bookRatio >= 0 ? 'g-value buy' : 'g-value sell') : ''}">${Number.isFinite(bookRatio) ? `${sign(bookRatio)}%` : '未取到'} · ${fmt(c.scoreG, 0)}分</b></div>
         </div>
+        <div class="seal-buyability ${esc(seal.tone)}">
+          <div><small>封单金额</small><b>${seal.sealAmount > 0 ? formatMoney(seal.sealAmount) : '--'}</b></div>
+          <div><small>首笔可买性</small><b>${esc(seal.label)}</b></div>
+          <p>${esc(seal.detail)}</p>
+        </div>
+        ${announcementMarkup(c)}
         <div class="trade-plan">
           <div class="trade-plan-head"><span>TRADE PLAN</span><b>条件不成立就不买</b></div>
           <p><b>买入</b><span>${esc(plan.buy)}</span></p>
@@ -2338,8 +2492,9 @@ body.modal-open{overflow:hidden}
         <td><b>${esc(c.sector)}</b><small>${esc(stage(c.height))} · <span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span></small></td>
         <td>${sign(c.gap)}%</td>
         <td><b>${fmt(c.total, 1)}</b></td>
+        <td>${fmt(c.scoreG, 0)}分</td>
         <td>${c.rank ? '优选' + c.rank : c.downgraded ? '创/科降级' : '达标观察'}</td>
-      </tr>`).join('') : '<tr><td colspan="7" class="empty">没有达到门槛的股票</td></tr>';
+      </tr>`).join('') : '<tr><td colspan="8" class="empty">没有达到门槛的股票</td></tr>';
   }
 
   function rankLimitRows(rows) {
