@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-lock-freeze-portfolio-v33">
+  <meta name="apanel-build" content="2026-11-16-lock-freeze-portfolio-v35">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -782,7 +782,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v33-20261116-lock-freeze-portfolio';
+  const VERSION = 'auction-v35-20261116-lock-freeze-portfolio';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2393,11 +2393,25 @@ body.modal-open{overflow:hidden}
       diversified.push(candidate);
       if (diversified.length >= env.maxPicks) break;
     }
-    const picks = diversified.map((c, i) => ({
+    let picks = diversified.map((c, i) => ({
       ...c, rank: i + 1, stage: stage(c.height), position: positionOf(c, cycle.label)
     }));
+    let portfolioRule = '';
+    if (picks.length > 1) {
+      const [first, second] = picks;
+      const bothNormalOpen = [first.gap, second.gap].every((gap) => gap >= -1.5 && gap <= 5.5);
+      const bothHighOpen = [first.gap, second.gap].every((gap) => Number.isFinite(gap) && gap > 2);
+      if (first.stage === second.stage && bothHighOpen) {
+        picks = [first];
+        portfolioRule = '两只均为同阶段高开，回落风险高度重复，只保留最高分1只';
+      } else if (first.stage === second.stage && bothNormalOpen && first.total - second.total <= 6) {
+        picks = [first];
+        portfolioRule = '两只候选同阶段且竞价结构接近，组合风险重复，只保留最高分1只';
+      }
+    }
     if (picks.length > 1) {
       picks.forEach((pick) => { pick.position = '5%–10%'; });
+      portfolioRule = '双票合计仓位上限20%，每只各5%–10%';
     }
     await Promise.all(picks.map(async (pick) => {
       pick.announcement = await announcementCheck(pick.code);
@@ -2406,7 +2420,7 @@ body.modal-open{overflow:hidden}
     const rankMap = Object.fromEntries(picks.map((p) => [p.code, p.rank]));
     all.forEach((c) => { c.rank = rankMap[c.code] || 0; });
     return {
-      day: pool.day, all, ranked, picks, maxHeight, rep, repGap, highOpen, cycle,
+      day: pool.day, all, ranked, picks, maxHeight, rep, repGap, highOpen, cycle, portfolioRule,
       threshold: env.threshold, maxPicks: env.maxPicks, lockedAt: clockText(),
       snapshot: '09:25', poolMode: pool.poolType,
       snapshotId: snapshot ? snapshot.snapshotId : '',
@@ -2426,19 +2440,23 @@ body.modal-open{overflow:hidden}
     $('verdict').textContent = d.picks.length
       ? `今日优选 ${d.picks.length} 只${reviewed.length ? ` · 封板 ${closed} 只` : ''}`
       : '今日无合格标的';
-    $('verdictSub').textContent = reviewed.length
+    const verdictDetail = reviewed.length
       ? `收盘核验 ${reviewed.length} 只：封板 ${closed} 只，触板未封 ${reviewed.filter((p) => p.closeStatus === '触板未封').length} 只，未触板 ${reviewed.filter((p) => p.closeStatus === '未触板').length} 只。`
       : (d.snapshotId
         ? '共享原始快照已读取；本页独立执行过滤、评分和排名。'
         : (d.picks.length ? '09:25 评分已锁定；目标为当日封板，15:00后自动补收盘结果。' : '按纪律保持空仓，不降低标准补票。'));
+    $('verdictSub').textContent = verdictDetail +
+      (d.picks.length && d.portfolioRule && !reviewed.length ? ` ${d.portfolioRule}。` : '');
     $('topScore').textContent = d.picks.length ? fmt(d.picks[0].total, 1) : '--';
     $('cycleText').textContent = d.cycle.label;
     $('cycleNote').textContent = d.cycle.note;
     $('topGap').textContent = sign(d.repGap) + '%';
     $('topName').textContent = (d.rep.name || d.rep.n || d.rep.code || '--') + ' · ' + String(d.rep.code || '').slice(2);
     $('threshold').textContent = d.threshold + '分';
-    $('pickLimit').textContent = d.maxPicks > 1
-      ? `今日上限${d.maxPicks}只 · 双票合计≤20%`
+    $('pickLimit').textContent = d.picks.length > 1
+      ? `双票各5%–10% · 合计≤20%`
+      : d.portfolioRule
+        ? '同质双票已去重'
       : `今日上限${d.maxPicks}只 · 常态1–2只`;
     $('lockTime').textContent = d.lockedAt;
     $('snapshotTime').textContent = '快照 ' + d.snapshot;
@@ -2806,6 +2824,8 @@ body.modal-open{overflow:hidden}
     let buy;
     if (gap > 5.5) {
       buy = `高开 ${sign(gap)}% 不追，首笔 25% 不挂主动单。只有回落到 ${low}–${high} 且 09:46 确认通过后，才考虑小仓，仍不追直线脉冲。`;
+    } else if (gap > 1.5) {
+      buy = `高开 ${sign(gap)}% 禁止按开盘价直接追买，开盘追价视为计划失效。09:30–09:45 必须先站稳分时均价且不破开盘价，才允许首笔 25% 在 ${low}–${high} 附近限价试错，否则保持空仓；剩余 75% 仍需 09:46 三项确认。`;
     } else if (gap < -1.5) {
       buy = `低开 ${sign(gap)}% 暂不挂首笔主动单。只有 9:45 前重新站上 ${price(ref)} 且分时均价同步上翘，才允许 25% 仓位试错；第二笔仍等 09:46 确认。`;
     } else if (gap < -.5) {
@@ -2870,8 +2890,7 @@ body.modal-open{overflow:hidden}
       });
       const existing = loadLock();
       const nextFingerprint = lockFingerprint(data);
-      if (existing && reason !== 'shared-initial' &&
-          lockFingerprint(existing) !== nextFingerprint) {
+      if (existing && lockFingerprint(existing) !== nextFingerprint) {
         appendLockAudit('blocked-rewrite', {
           reason,
           existing: JSON.parse(lockFingerprint(existing)),
@@ -2879,12 +2898,29 @@ body.modal-open{overflow:hidden}
         });
         return false;
       }
+      const incomingByCode = Object.fromEntries(
+        (data?.picks || []).map((pick) => [String(pick.code || ''), pick])
+      );
+      const lockedPicks = existing
+        ? (existing.picks || []).map((lockedPick) => {
+          const incoming = incomingByCode[String(lockedPick.code || '')];
+          const merged = { ...lockedPick };
+          if (incoming?.candidateAdvanced) merged.candidateAdvanced = true;
+          if (incoming?.confirm0946) merged.confirm0946 = incoming.confirm0946;
+          if (incoming?.closeStatus && Number.isFinite(Number(incoming.closePct))) {
+            ['closePrice', 'closePct', 'highPct', 'closeStatus', 'advanced', 'failureReason']
+              .forEach((key) => { merged[key] = incoming[key]; });
+          }
+          return merged;
+        })
+        : (data?.picks || []);
+      const lockedData = existing ? { ...existing, picks: lockedPicks } : data;
       const record = {
         schema: LOCK_SCHEMA_VERSION,
         version: VERSION,
         day: ymdOffset(0),
         data: {
-          ...data,
+          ...lockedData,
           lockedAt: existing?.lockedAt || data?.lockedAt || clockText()
         }
       };
@@ -3035,7 +3071,7 @@ body.modal-open{overflow:hidden}
     const d = bjNow();
     const day = d.getDay();
     const sec = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-    if (!state.locked && day >= 1 && day <= 5 && sec >= 33902 &&
+    if (!state.booting && !state.locked && day >= 1 && day <= 5 && sec >= 33902 &&
         !state.loading && Date.now() >= state.retryAt) {
       runSelection(false);
     }
@@ -3108,7 +3144,7 @@ body.modal-open{overflow:hidden}
       runSelection(true);
     });
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && !state.locked && !state.loading) runSelection(false);
+      if (!document.hidden && !state.booting && !state.locked && !state.loading) runSelection(false);
     });
     tick();
     setInterval(tick, 1000);
