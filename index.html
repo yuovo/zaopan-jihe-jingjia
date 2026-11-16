@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-auction-book-g-v32">
+  <meta name="apanel-build" content="2026-11-16-lock-freeze-portfolio-v33">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -782,9 +782,11 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v32-20261116-auction-book-g';
+  const VERSION = 'auction-v33-20261116-lock-freeze-portfolio';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
+  const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
+  const LOCK_AUDIT_KEY = 'auction_lite_lock_audit_v1';
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
   const NEXT_CANDIDATE_KEY = 'auction_lite_next_candidates_v1';
   const MARKET_SNAPSHOT_KEY = 'auction_lite_market_snapshots_v1';
@@ -2117,7 +2119,7 @@ body.modal-open{overflow:hidden}
           : 60000
       );
       if (changed) {
-        saveLock(state.data);
+        saveLock(state.data, 'confirm-0946');
         render();
       }
     } finally {
@@ -2178,7 +2180,7 @@ body.modal-open{overflow:hidden}
     if (cycle === '退潮期') return h >= 2 ? '0%–5%' : '≤5%';
     if (cycle === '冰点期') return h >= 4 ? '不参与' : h <= 2 ? '≤5%' : '5%–10%';
     if (cycle === '高潮期') return h >= 4 ? '≤5%或不参与' : '5%–10%';
-    if (cycle === '发酵期') return h >= 4 ? '≤10%' : h === 3 ? '20%–30%' : h === 2 ? '10%–15%' : '5%–10%';
+    if (cycle === '发酵期') return h >= 4 ? '≤10%' : h === 3 ? '10%–20%' : h === 2 ? '10%–15%' : '5%–10%';
     return h >= 4 ? '0%–5%' : h === 3 ? '10%–20%' : '5%–10%';
   }
 
@@ -2385,9 +2387,18 @@ body.modal-open{overflow:hidden}
 
     const ranked = all.filter((c) => !c.filtered && !c.watchOnly && Number.isFinite(c.total))
       .sort((a, b) => b.total - a.total || b.gap - a.gap || a.code.localeCompare(b.code));
-    const picks = ranked.filter((c) => !c.downgraded).slice(0, env.maxPicks).map((c, i) => ({
+    const diversified = [];
+    for (const candidate of ranked.filter((c) => !c.downgraded)) {
+      if (diversified.some((pick) => pick.sector === candidate.sector)) continue;
+      diversified.push(candidate);
+      if (diversified.length >= env.maxPicks) break;
+    }
+    const picks = diversified.map((c, i) => ({
       ...c, rank: i + 1, stage: stage(c.height), position: positionOf(c, cycle.label)
     }));
+    if (picks.length > 1) {
+      picks.forEach((pick) => { pick.position = '5%–10%'; });
+    }
     await Promise.all(picks.map(async (pick) => {
       pick.announcement = await announcementCheck(pick.code);
       if (pick.announcement.risk) pick.position = '≤5%';
@@ -2426,8 +2437,9 @@ body.modal-open{overflow:hidden}
     $('topGap').textContent = sign(d.repGap) + '%';
     $('topName').textContent = (d.rep.name || d.rep.n || d.rep.code || '--') + ' · ' + String(d.rep.code || '').slice(2);
     $('threshold').textContent = d.threshold + '分';
-    const dailyPickLimit = ['退潮期', '冰点期', '分歧期', '高潮期'].includes(d.cycle.label) ? 1 : 2;
-    $('pickLimit').textContent = `今日上限${dailyPickLimit}只 · 常态1–2只`;
+    $('pickLimit').textContent = d.maxPicks > 1
+      ? `今日上限${d.maxPicks}只 · 双票合计≤20%`
+      : `今日上限${d.maxPicks}只 · 常态1–2只`;
     $('lockTime').textContent = d.lockedAt;
     $('snapshotTime').textContent = '快照 ' + d.snapshot;
     $('pickCount').textContent = d.picks.length + '只';
@@ -2435,7 +2447,7 @@ body.modal-open{overflow:hidden}
     $('footStatus').textContent = '定稿日 ' + d.day + ' · ' + d.all.length + '只候选 · ' + (d.snapshotId ? '独立评分' : '实时计算') + ' · 已锁定';
     $('selectBtn').textContent = '已选定';
     $('selectBtn').disabled = true;
-    $('actionHint').textContent = d.snapshotId ? '共享原始快照 · 本页独立评分' : '今日结果已固定';
+    $('actionHint').textContent = '09:25定稿已冻结 · 后台只补收盘';
 
     $('picks').innerHTML = d.picks.length ? d.picks.map((c, i) => {
       const plan = tradePlanOf(c);
@@ -2569,8 +2581,8 @@ body.modal-open{overflow:hidden}
     const updateLabel = pool.updatedAt ? ` · 更新 ${pool.updatedAt}` : '';
     $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
     $('ladderTitle').textContent = `${dayLabel} 连板池`;
-    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；候选预评分由连板高度、首封时间、开板次数、板块强度和龙头加成计算，不含次日竞价分；排除创业板、科创板、北交所和 ST。`;
-    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；连板采用同花顺式「X天Y板」口径；板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。`;
+    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；候选预评分由连板高度、首封时间、开板次数、板块强度和龙头加成计算，不含次日竞价分；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
+    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；连板采用同花顺式「X天Y板」口径；板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
@@ -2742,7 +2754,7 @@ body.modal-open{overflow:hidden}
         }
       });
       if (changed) {
-        saveLock(data);
+        saveLock(data, 'close-review');
         render();
         renderTodayMarket();
         saveMarketSnapshot(state.marketPool);
@@ -2835,19 +2847,57 @@ body.modal-open{overflow:hidden}
     if (detail) $('verdictSub').textContent = detail;
   }
 
-  function saveLock(data) {
+  function lockFingerprint(data) {
+    return JSON.stringify((data?.picks || []).map((pick) => ({
+      code: String(pick.code || ''),
+      rank: Number(pick.rank) || 0,
+      score: Number(pick.total ?? pick.finalScore)
+    })));
+  }
+
+  function appendLockAudit(type, detail = {}) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(LOCK_AUDIT_KEY) || '[]');
+      stored.push({ at: new Date().toISOString(), type, ...detail });
+      localStorage.setItem(LOCK_AUDIT_KEY, JSON.stringify(stored.slice(-50)));
+    } catch (_) {}
+  }
+
+  function saveLock(data, reason = 'update') {
     try {
       (data?.picks || []).forEach((pick) => {
         pick.candidateAdvanced = Boolean(pick.candidateAdvanced || isPriorCandidate(pick.code));
       });
-      localStorage.setItem(LOCK_KEY, JSON.stringify({ version: VERSION, day: ymdOffset(0), data }));
-      saveSelectionHistory(ymdOffset(0), data?.picks || [], { lockedAt: data?.lockedAt || '' });
-    } catch (_) {}
+      const existing = loadLock();
+      const nextFingerprint = lockFingerprint(data);
+      if (existing && reason !== 'shared-initial' &&
+          lockFingerprint(existing) !== nextFingerprint) {
+        appendLockAudit('blocked-rewrite', {
+          reason,
+          existing: JSON.parse(lockFingerprint(existing)),
+          incoming: JSON.parse(nextFingerprint)
+        });
+        return false;
+      }
+      const record = {
+        schema: LOCK_SCHEMA_VERSION,
+        version: VERSION,
+        day: ymdOffset(0),
+        data: {
+          ...data,
+          lockedAt: existing?.lockedAt || data?.lockedAt || clockText()
+        }
+      };
+      localStorage.setItem(LOCK_KEY, JSON.stringify(record));
+      saveSelectionHistory(ymdOffset(0), record.data?.picks || [], { lockedAt: record.data?.lockedAt || '' });
+      appendLockAudit(reason, { day: record.day, fingerprint: JSON.parse(nextFingerprint) });
+      return true;
+    } catch (_) { return false; }
   }
   function loadLock() {
     try {
       const x = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null');
-      return x && x.version === VERSION && x.day === ymdOffset(0) && x.data ? x.data : null;
+      return x && x.day === ymdOffset(0) && x.data && Array.isArray(x.data.picks) ? x.data : null;
     } catch (_) { return null; }
   }
 
@@ -2901,6 +2951,14 @@ body.modal-open{overflow:hidden}
       if (manual) toast('09:25:02后才开始正式筛选');
       return;
     }
+    const preserved = loadLock();
+    if (preserved) {
+      state.data = preserved;
+      state.locked = true;
+      render();
+      if (manual) toast('今日优选已于09:25定稿，不再重新排名');
+      return;
+    }
     setLoading(true);
     try {
       let data = null;
@@ -2929,7 +2987,7 @@ body.modal-open{overflow:hidden}
       state.data = data;
       state.locked = true;
       state.retryAt = 0;
-      saveLock(data);
+      saveLock(data, 'selection');
       render();
       if (sec >= 54000) refreshPicksClose(true);
     } catch (e) {
@@ -2948,7 +3006,7 @@ body.modal-open{overflow:hidden}
   }
 
   async function syncSharedCanonical() {
-    if (state.sharedLoading || (state.data && state.data.snapshotId)) return;
+    if (state.sharedLoading || state.locked || state.data) return;
     state.sharedLoading = true;
     state.sharedCheckAt = Date.now() + 60000;
     try {
@@ -2957,7 +3015,7 @@ body.modal-open{overflow:hidden}
       if (!shared) return;
       state.data = shared;
       state.locked = true;
-      saveLock(shared);
+      saveLock(shared, 'shared-initial');
       render();
     } finally {
       state.sharedLoading = false;
@@ -2980,9 +3038,6 @@ body.modal-open{overflow:hidden}
     if (!state.locked && day >= 1 && day <= 5 && sec >= 33902 &&
         !state.loading && Date.now() >= state.retryAt) {
       runSelection(false);
-    }
-    if (state.locked && state.data && !state.data.snapshotId && Date.now() >= state.sharedCheckAt) {
-      syncSharedCanonical();
     }
     if (state.previous && day >= 1 && day <= 5 && sec >= 33902 &&
         Date.now() - state.previousQuoteAt >= 30000) {
@@ -3072,15 +3127,16 @@ body.modal-open{overflow:hidden}
     }
       const rec = currentArchiveRecord(records);
       const shared = rec ? await modelFromArchive(rec) : null;
-      const saved = shared || loadLock();
+      const storedLock = loadLock();
+      const saved = storedLock || shared;
       state.previous = resolvePreviousSelection();
       renderPreviousSelection();
       if (saved) {
         state.data = saved;
         state.locked = true;
         render();
+        if (!storedLock) saveLock(saved, 'shared-initial');
         saveSelectionHistory(ymdOffset(0), saved.picks || [], { lockedAt: saved.lockedAt || '' });
-        if (!shared && !saved.snapshotId) setTimeout(() => syncSharedCanonical(), 2500);
       } else {
         $('selectBtn').disabled = true;
         $('actionHint').textContent = '09:25后自动筛选';
