@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-compact-pick-v36">
+  <meta name="apanel-build" content="2026-11-17-history-guard-v37">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -803,7 +803,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v36-20261116-compact-pick';
+  const VERSION = 'auction-v37-20261117-history-guard';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2987,9 +2987,17 @@ body.modal-open{overflow:hidden}
     }
     const payload = window.AUCTION_DAILY_ARCHIVE;
     state.archiveRecords = payload && Array.isArray(payload.records) ? payload.records : [];
+    // 归档是收盘后「日K重建」口径（无竞价量能、无盘口G项），排名与本页09:25实时定稿不同。
+    // 它只补本地没有的历史日，绝不覆盖当天或已存在的09:25定稿，否则跨日后「上一交易日」会被换名。
+    const today = ymdOffset(0);
+    const storedDays = new Set(loadSelectionHistory().map((x) => String(x && x.day || '')));
     state.archiveRecords.forEach((rec) => {
       const selection = selectionFromRecord(rec);
-      if (selection) saveSelectionHistory(selection.day, selection.picks, { lockedAt: selection.lockedAt });
+      if (!selection) return;
+      if (String(selection.day) >= today) return;
+      if (storedDays.has(String(selection.day))) return;
+      saveSelectionHistory(selection.day, selection.picks, { lockedAt: selection.lockedAt });
+      storedDays.add(String(selection.day));
     });
     return state.archiveRecords;
   }
@@ -3214,7 +3222,11 @@ body.modal-open{overflow:hidden}
         state.locked = true;
         render();
         if (!storedLock) saveLock(saved, 'shared-initial');
-        saveSelectionHistory(ymdOffset(0), saved.picks || [], { lockedAt: saved.lockedAt || '' });
+        const todayWritten = loadSelectionHistory()
+          .some((x) => String(x && x.day || '') === ymdOffset(0));
+        if (!todayWritten) {
+          saveSelectionHistory(ymdOffset(0), saved.picks || [], { lockedAt: saved.lockedAt || '' });
+        }
       } else {
         $('selectBtn').disabled = true;
         $('actionHint').textContent = '09:25后自动筛选';
