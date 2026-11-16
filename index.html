@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-16-lock-freeze-portfolio-v35">
+  <meta name="apanel-build" content="2026-11-16-compact-pick-v36">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -132,7 +132,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .section-date{display:block;margin-top:6px;color:#8a7962;font:600 10px/1.4 Consolas,monospace;letter-spacing:.25px}
 .section-head h2{margin:5px 0 0;font:700 24px/1.25 Georgia,"Songti SC",serif;color:var(--forest)}
 .count-tag{font:700 11px/1 Consolas,monospace;color:#5e6d68;padding:7px 9px;border-radius:999px;background:#e8e2d6}
-.picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px}
 .pick-card{
   position:relative;overflow:hidden;padding:17px 18px;border:1px solid #d6cec0;border-radius:17px;
   background:#fffdf8;box-shadow:0 10px 30px rgba(71,61,41,.07);
@@ -149,6 +149,21 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .pick-body small{display:block;color:#8b928e;font-size:9px}
 .pick-body b{display:block;margin-top:4px;color:var(--ink);font:700 12.5px/1.3 Consolas,monospace}
 .g-value.buy{color:var(--red)}.g-value.sell{color:var(--teal)}
+.pick-quick-plan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:11px;padding:9px 10px;border:1px solid #cfe0d8;border-radius:11px;background:#edf6f2}
+.pick-quick-plan div{min-width:0}
+.pick-quick-plan small{display:block;color:#71817a;font-size:9px;line-height:1.3}
+.pick-quick-plan b{display:block;margin-top:4px;color:#1c5b4d;font:700 11.5px/1.35 Consolas,"Microsoft YaHei",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-quick-plan .danger b{color:#a9343d}
+.pick-details{margin-top:10px;border-top:1px solid #e5ddd0;padding-top:9px}
+.pick-details>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid #dfd5c6;border-radius:10px;background:#faf7f0;color:#4f625b;cursor:pointer;list-style:none}
+.pick-details>summary::-webkit-details-marker{display:none}
+.pick-details>summary span{font-size:11.5px;font-weight:700}
+.pick-details>summary small{color:#8a8f89;font-size:9.5px;text-align:right;line-height:1.4}
+.pick-details>summary::after{content:"＋";flex:0 0 22px;color:#53766c;font:700 17px/1 Consolas,monospace;text-align:center}
+.pick-details[open]>summary::after{content:"−"}
+.pick-details[open]>summary{border-color:#bfd7cc;background:#edf6f2;color:#1c5b4d}
+.pick-details-body{padding-top:1px}
+.pick-meta .close-result{background:#e7eee9;color:#365e53;font-weight:700}
 .seal-buyability{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding:10px 11px;border:1px solid #ded5c7;border-radius:11px;background:#faf6ed}
 .seal-buyability small{display:block;color:#8b928e;font-size:9px}
 .seal-buyability b{display:block;margin-top:3px;color:var(--forest);font:700 12px/1.4 Consolas,monospace}
@@ -456,6 +471,12 @@ body.modal-open{overflow:hidden}
   .pick-body{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 8px;margin-top:15px}
   .pick-body small{font-size:11px;line-height:1.35}
   .pick-body b{margin-top:5px;font-size:14px}
+  .pick-quick-plan{padding:10px;gap:8px}
+  .pick-quick-plan small{font-size:10.5px}
+  .pick-quick-plan b{font-size:12.5px}
+  .pick-details>summary{padding:10px 11px}
+  .pick-details>summary span{font-size:13px}
+  .pick-details>summary small{display:none}
   .seal-buyability{padding:11px;gap:9px}
   .seal-buyability small{font-size:10.5px}
   .seal-buyability b{font-size:13.5px}
@@ -782,7 +803,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v35-20261116-lock-freeze-portfolio';
+  const VERSION = 'auction-v36-20261116-compact-pick';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2467,12 +2488,22 @@ body.modal-open{overflow:hidden}
     $('selectBtn').disabled = true;
     $('actionHint').textContent = '09:25定稿已冻结 · 后台只补收盘';
 
+    const openPickDetails = new Set(
+      [...document.querySelectorAll('#picks .pick-details[open]')].map((node) => node.dataset.code)
+    );
     $('picks').innerHTML = d.picks.length ? d.picks.map((c, i) => {
       const plan = tradePlanOf(c);
       const promoted = Boolean(c.candidateAdvanced || isPriorCandidate(c.code));
       const reviewed = Boolean(c.closeStatus && Number.isFinite(Number(c.closePct)));
       const bookRatio = c.bookRatio == null || c.bookRatio === '' ? NaN : Number(c.bookRatio);
       const seal = c.buyability || { label: '盘口未取到', tone: 'unknown', sealAmount: NaN, detail: '竞价盘口数据缺失。' };
+      const gapNumber = Number(c.gap);
+      const quickAction = c.strategy === '低吸'
+        ? '低吸待确认'
+        : gapNumber > 1.5 ? '高开不追' : gapNumber < -.5 ? '弱开确认' : '限价首笔';
+      const hardStop = Number.isFinite(Number(c.price)) && Number(c.price) > 0
+        ? price(Number(c.price) * (c.strategy === '低吸' ? .97 : .98))
+        : '--';
       return `
       <article class="pick-card">
         <div class="pick-top">
@@ -2485,6 +2516,7 @@ body.modal-open{overflow:hidden}
           <span class="sector-rank ${c.sectorRank === 1 ? 'leader' : ''}">板块第${c.sectorRank} · ${c.sectorRank === 1 ? '龙头' : '非龙头'}</span>
           ${promoted ? '<span class="promoted">已晋级</span>' : ''}
           ${c.announcement?.risk ? '<span class="risk-tag">公告风险</span>' : ''}
+          ${reviewed ? `<span class="close-result">收盘 ${sign(c.closePct)}%</span>` : ''}
         </div>
         <div class="pick-body">
           <div><small>竞价参考</small><b>${price(c.price)}</b></div>
@@ -2492,6 +2524,14 @@ body.modal-open{overflow:hidden}
           <div><small>昨日首封</small><b>${timeText(c.firstTime)}</b></div>
           <div><small>G项盘口</small><b class="${Number.isFinite(bookRatio) ? (bookRatio >= 0 ? 'g-value buy' : 'g-value sell') : ''}">${Number.isFinite(bookRatio) ? `${sign(bookRatio)}%` : '未取到'} · ${fmt(c.scoreG, 0)}分</b></div>
         </div>
+        <div class="pick-quick-plan">
+          <div><small>执行原则</small><b>${esc(quickAction)}</b></div>
+          <div><small>仓位上限</small><b>${esc(c.position)}</b></div>
+          <div class="danger"><small>硬止损参考</small><b>${hardStop}</b></div>
+        </div>
+        <details class="pick-details" data-code="${esc(c.code)}"${openPickDetails.has(c.code) ? ' open' : ''}>
+          <summary><span>展开完整分析</span><small>盘口 · 公告 · 买卖步骤 · 09:46确认 · 收盘复盘</small></summary>
+          <div class="pick-details-body">
         <div class="seal-buyability ${esc(seal.tone)}">
           <div><small>封单金额</small><b>${seal.sealAmount > 0 ? formatMoney(seal.sealAmount) : '--'}</b></div>
           <div><small>首笔可买性</small><b>${esc(seal.label)}</b></div>
@@ -2522,6 +2562,8 @@ body.modal-open{overflow:hidden}
             <p class="close-reason">15:00后自动补最后收盘价，并判断封板、触板未封或未触板。</p>
           </div>`}
         <div class="pick-rule"><b>${esc(c.stage)}：</b>${esc(stageNote(c.stage))}，仓位上限 ${esc(c.position)}。</div>
+          </div>
+        </details>
       </article>`;
     }).join('') : '<div class="empty-state">今日没有股票通过情绪、板块、盘口和评分门槛。</div>';
 
