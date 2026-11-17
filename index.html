@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-17-history-guard-v37">
+  <meta name="apanel-build" content="2026-11-17-book-fix-v38">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -803,7 +803,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v37-20261117-history-guard';
+  const VERSION = 'auction-v38-20261117-book-fix';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -1421,10 +1421,11 @@ body.modal-open{overflow:hidden}
     let shareUnit = 100;
     if (amount > 0 && last > 0 && volume > 0) shareUnit = (amount / last / volume) < 10 ? 1 : 100;
     volume *= shareUnit;
-    const bidPrices = [10, 12, 14, 16, 18].map((i) => Number(p[i]) || 0);
-    const bidVolumes = [11, 13, 15, 17, 19].map((i) => Number(p[i]) || 0);
-    const askPrices = [20, 22, 24, 26, 28].map((i) => Number(p[i]) || 0);
-    const askVolumes = [21, 23, 25, 27, 29].map((i) => Number(p[i]) || 0);
+    // 腾讯 qt.gtimg.cn 字段：9..18 = 买一价/买一量…买五价/买五量，19..28 = 卖一价/卖一量…卖五价/卖五量
+    const bidPrices = [9, 11, 13, 15, 17].map((i) => Number(p[i]) || 0);
+    const bidVolumes = [10, 12, 14, 16, 18].map((i) => Number(p[i]) || 0);
+    const askPrices = [19, 21, 23, 25, 27].map((i) => Number(p[i]) || 0);
+    const askVolumes = [20, 22, 24, 26, 28].map((i) => Number(p[i]) || 0);
     return {
       code, name: p[1] || code, price: last, prevClose: prev,
       open: Number(p[5]), high: Number(p[33]), low: Number(p[34]),
@@ -1452,7 +1453,7 @@ body.modal-open{overflow:hidden}
 
   function sealedBuyability(q, floatCap) {
     const book = orderBookStats(q);
-    const limit = openLimitPrice(q?.code, q?.code, q?.name);
+    const limit = openLimitPrice(q, q?.code, q?.name);
     if (!Number.isFinite(book.ratio)) {
       return { label: '盘口未取到', tone: 'unknown', sealAmount: NaN, capPct: NaN, detail: '竞价盘口数据缺失。', ratio: NaN };
     }
@@ -2156,7 +2157,7 @@ body.modal-open{overflow:hidden}
     if (gap < -0.5) return 10;
     if (gap < 2) return 8;
     if (gap < 4) return 4;
-    return 5;
+    return 2;
   }
   function scoreB(volumeRatio, amountRatio) {
     const vr = Number(volumeRatio), ar = Number(amountRatio);
@@ -2229,7 +2230,7 @@ body.modal-open{overflow:hidden}
     const today = byDay[ymdOffset(0)] || null;
     const qm = /^(\d{8})(\d{2})(\d{2})(\d{2})$/.exec(String(quote?.time || ''));
     const exactAuction = qm && qm[1] === ymdOffset(0) &&
-      Number(qm[2]) * 3600 + Number(qm[3]) * 60 + Number(qm[4]) >= 33902 &&
+      Number(qm[2]) * 3600 + Number(qm[3]) * 60 + Number(qm[4]) >= 33900 &&
       Number(qm[2]) * 3600 + Number(qm[3]) * 60 + Number(qm[4]) <= 33960;
     const currentVolume = today?.volume > 0 ? today.volume : exactAuction ? Number(quote.volume) : NaN;
     const currentAmount = today?.amount > 0 ? today.amount : exactAuction ? Number(quote.amount) : NaN;
@@ -2390,7 +2391,7 @@ body.modal-open{overflow:hidden}
 
     scorePool.filter((c) => !c.filtered && !c.watchOnly).forEach((c) => {
       const a = scoreA(c.gap);
-      const b = scoreB(c.volRatio, c.amountRatio);
+      const b = scoreB(c.ratioMode.startsWith('5日竞价量比') ? c.volRatio : NaN, c.amountRatio);
       const cc = scoreC(c.height, maxHeight);
       const d = scoreD(c.firstTime);
       const e = scoreE(c.breaks);
