@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-announcement-final-v46">
+  <meta name="apanel-build" content="2026-11-18-autolock-v47">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -824,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v46-20261118-announcement-final';
+  const VERSION = 'auction-v47-20261118-autolock';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2709,7 +2709,7 @@ body.modal-open{overflow:hidden}
       : d.portfolioRule
         ? '同质双票已去重'
       : `今日上限${d.maxPicks}只 · 常态1–2只`;
-    $('lockTime').textContent = d.lockedAt;
+    $('lockTime').textContent = lockTimeText(d.lockedAt);
     $('snapshotTime').textContent = '快照 ' + d.snapshot;
     $('pickCount').textContent = d.picks.length + '只';
     $('candidateCount').textContent = d.ranked.length + '只达标 · ' + d.all.filter((c) => c.filtered).length + '只淘汰';
@@ -3135,6 +3135,13 @@ body.modal-open{overflow:hidden}
     return `${pad(Math.floor(n / 10000))}:${pad(Math.floor(n / 100) % 100)}:${pad(n % 100)}`;
   }
 
+  function lockTimeText(value) {
+    const text = String(value || '').trim();
+    if (!text) return '--';
+    const time = /(\d{1,2}:\d{2}(?::\d{2})?)/.exec(text);
+    return time ? time[1].padStart(5, '0') : text;
+  }
+
   function setLoading(on, text) {
     state.loading = on;
     document.body.classList.toggle('loading', on);
@@ -3407,7 +3414,11 @@ body.modal-open{overflow:hidden}
     if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 54000) {
       refreshPicksClose(false);
     }
-    if (!state.locked && (day < 1 || day > 5)) {
+    if (state.booting && !state.locked) {
+      $('selectBtn').disabled = true;
+      $('selectBtn').textContent = '同步定稿…';
+      $('actionHint').textContent = '正在读取云端统一09:25定稿';
+    } else if (!state.locked && (day < 1 || day > 5)) {
       $('selectBtn').disabled = true;
       $('selectBtn').textContent = '非交易日';
       $('actionHint').textContent = '周末休市，下一交易日自动执行';
