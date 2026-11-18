@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-nextday-score-v40">
+  <meta name="apanel-build" content="2026-11-18-nextday-sort-v41">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -824,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v40-20261118-nextday-score';
+  const VERSION = 'auction-v41-20261118-nextday-sort';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2785,11 +2785,12 @@ body.modal-open{overflow:hidden}
     const updateLabel = pool.updatedAt ? ` · 更新 ${pool.updatedAt}` : '';
     $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
     $('ladderTitle').textContent = `${dayLabel} 连板池`;
-    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；基础分由连板高度、首封时间、开板次数、板块强度和龙头加成计算。明日封板分在此基础上加入近30日公告风险、当日主力资金、封单占成交、封单覆盖率和流通市值。明日参考封单量按流通市值×换手率档位×连板高度估算；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
+    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；本区严格按“明日封板分”从高到低排序，基础分只作结构参考。明日封板分加入近30日公告风险、当日主力资金、封单占成交、封单覆盖率和流通市值。明日参考封单量按流通市值×换手率档位×连板高度估算；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
     $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；连板采用同花顺式「X天Y板」口径；板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
+      nextDaySealAssessment(b).score - nextDaySealAssessment(a).score ||
       (Number(b.candidateScore) || 0) - (Number(a.candidateScore) || 0) ||
       b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
     );
