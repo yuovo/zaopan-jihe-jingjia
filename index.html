@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-announcement-jsonp-v44">
+  <meta name="apanel-build" content="2026-11-18-announcement-retry-v45">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -824,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v44-20261118-announcement-jsonp';
+  const VERSION = 'auction-v45-20261118-announcement-retry';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -1340,7 +1340,9 @@ body.modal-open{overflow:hidden}
   }
 
   async function hydrateCandidateConditions(rows, day) {
-    const pending = rows.filter((x) => !x.conditionFetched);
+    const pending = rows.filter((x) =>
+      !x.announcement || x.announcement.status === 'missing' || !x.flowFetched
+    );
     if (!pending.length) return;
     if (state.candidateConditionLoading && state.candidateConditionDay === day) return;
     state.candidateConditionLoading = true;
@@ -1355,10 +1357,11 @@ body.modal-open{overflow:hidden}
       for (let start = 0; start < pending.length; start += 4) {
         await Promise.all(pending.slice(start, start + 4).map(async (x) => {
           const announcement = x.announcement || await announcementCheck(x.code);
-          const mainFlow = await candidateFlowForDay(x.code, day);
+          const mainFlow = x.flowFetched ? x.mainFlow : await candidateFlowForDay(x.code, day);
           x.announcement = announcement;
           x.mainFlow = mainFlow;
-          x.conditionFetched = true;
+          x.flowFetched = true;
+          x.conditionFetched = announcement?.status !== 'missing';
         }));
         if (state.marketPool?.day === day) renderTodayMarket();
       }
@@ -2955,7 +2958,8 @@ body.modal-open{overflow:hidden}
             if (Number.isFinite(Number(old.finalPrice))) x.finalPrice = Number(old.finalPrice);
             if (old.announcement) x.announcement = old.announcement;
             if (old.mainFlow) x.mainFlow = old.mainFlow;
-            if (old.conditionFetched) x.conditionFetched = true;
+            if (old.flowFetched) x.flowFetched = true;
+            if (old.conditionFetched && old.announcement?.status !== 'missing') x.conditionFetched = true;
           }
         });
         const finalDay = resultDay < ymdOffset(0) || sec >= 54000;
