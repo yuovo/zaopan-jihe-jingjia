@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "capture": "node automation/capture-selection.mjs"
+    "capture": "node automation/capture-selection.mjs",
+    "capture:candidates": "node automation/capture-candidates.mjs"
   },
   "dependencies": {
     "playwright": "1.55.0"

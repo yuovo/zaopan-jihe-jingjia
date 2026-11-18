@@ -1,0 +1,48 @@
+name: 15:05 云端候选评分
+
+on:
+  schedule:
+    - cron: '55 6 * * 1-5'
+    - cron: '5 7 * * 1-5'
+    - cron: '20 7 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auction-candidates-1505
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: 读取仓库
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安装浏览器依赖
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: 生成云端候选评分
+        run: npm run capture:candidates
+
+      - name: 提交云端候选
+        run: |
+          if git diff --quiet -- auction-candidates.js; then
+            echo "云端候选没有变化"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add auction-candidates.js
+          git commit -m "自动更新 $(TZ=Asia/Shanghai date +%F) 下一交易日候选评分"
+          git push

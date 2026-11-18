@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-autolock-v47">
+  <meta name="apanel-build" content="2026-11-18-cloud-candidates-v49">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -812,6 +812,9 @@ body.modal-open{overflow:hidden}
   const SERVER_SELECTION_URL = location.protocol === 'file:'
     ? 'https://yuovo.github.io/zaopan-jihe-jingjia/auction-current.js'
     : './auction-current.js';
+  const SERVER_CANDIDATES_URL = location.protocol === 'file:'
+    ? 'https://yuovo.github.io/zaopan-jihe-jingjia/auction-candidates.js'
+    : './auction-candidates.js';
   const API = {
     zt: 'https://push2ex.eastmoney.com/getTopicZTPool',
     yzt: 'https://push2ex.eastmoney.com/getYesterdayZTPool',
@@ -824,7 +827,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v47-20261118-autolock';
+  const VERSION = 'auction-v49-20261118-cloud-candidates';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -832,6 +835,7 @@ body.modal-open{overflow:hidden}
   const HISTORY_KEY = 'auction_lite_selection_history_v1';
   const NEXT_CANDIDATE_KEY = 'auction_lite_next_candidates_v1';
   const MARKET_SNAPSHOT_KEY = 'auction_lite_market_snapshots_v1';
+  const CLOUD_CANDIDATES_KEY = 'auction_lite_cloud_candidates_v1';
   const LEGACY_SELECTIONS = {
     '20261106': [
       {
@@ -1335,7 +1339,7 @@ body.modal-open{overflow:hidden}
     const cached = candidateFlowCache.get(key);
     if (cached && Date.now() - cached.cachedAt < 10 * 60000) return cached.value;
     const value = await orderFlowForDay(code, day);
-    candidateFlowCache.set(key, { cachedAt: Date.now(), value });
+    if (value) candidateFlowCache.set(key, { cachedAt: Date.now(), value });
     return value;
   }
 
@@ -1360,7 +1364,7 @@ body.modal-open{overflow:hidden}
           const mainFlow = x.flowFetched ? x.mainFlow : await candidateFlowForDay(x.code, day);
           x.announcement = announcement;
           x.mainFlow = mainFlow;
-          x.flowFetched = true;
+          x.flowFetched = Boolean(mainFlow);
           x.conditionFetched = announcement?.status !== 'missing';
         }));
         if (state.marketPool?.day === day) renderTodayMarket();
@@ -1370,7 +1374,9 @@ body.modal-open{overflow:hidden}
       state.candidateConditionDay = '';
     }
     if (state.marketPool?.day === day) {
-      const unresolved = pending.some((x) => !x.announcement || x.announcement.status === 'missing');
+      const unresolved = pending.some((x) =>
+        !x.announcement || x.announcement.status === 'missing' || !x.mainFlow
+      );
       if (unresolved) {
         setTimeout(() => {
           if (!state.candidateConditionLoading && state.marketPool?.day === day) renderTodayMarket();
@@ -1429,6 +1435,17 @@ body.modal-open{overflow:hidden}
     } catch (_) {}
     if (!payload) {
       try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
+    }
+    if (!payload) {
+      try {
+        const response = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
+        if (response.ok) {
+          const text = await response.text();
+          const marker = text.indexOf('Markdown Content:');
+          const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
+          payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
+        }
+      } catch (_) {}
     }
     const line = (Array.isArray(payload?.data?.klines) ? payload.data.klines : [])
       .map((raw) => String(raw || '').split(','))
@@ -1967,6 +1984,7 @@ body.modal-open{overflow:hidden}
   }
 
   function restoreLatestMarketSnapshot() {
+    if (state.marketPool?.cloud && state.marketPool.rows?.length) return true;
     const today = ymdOffset(0);
     const latest = Object.values(loadMarketSnapshots())
       .filter((x) => x && String(x.day) <= today && Array.isArray(x.rows) && x.rows.length)
@@ -2858,6 +2876,7 @@ body.modal-open{overflow:hidden}
     const list = $('nextCandidateList');
     const ladder = $('ladderList');
     if (!pool || !Array.isArray(pool.rows) || !pool.rows.length) {
+      window.AUCTION_CANDIDATES_SNAPSHOT = null;
       $('nextCandidateTitle').textContent = '涨停优选候选 · 下一交易日参考';
       $('ladderTitle').textContent = '连板池';
       $('nextCandidateCount').textContent = '等待数据';
@@ -2881,7 +2900,8 @@ body.modal-open{overflow:hidden}
       b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
     );
     const shown = ranked.slice(0, 20);
-    $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
+    const totalCount = Math.max(ranked.length, Number(pool.totalCount) || 0);
+    $('nextCandidateCount').textContent = `${totalCount}只${totalCount > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => {
       const assessment = nextDaySealAssessment(x);
       const decision = candidateReasonOf(x, assessment);
@@ -2915,6 +2935,20 @@ body.modal-open{overflow:hidden}
         <span class="candidate-open">查看完整入选判断 →</span>
       </div>`;
     }).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
+    const candidatesReady = shown.length && shown.every((x) =>
+      x.conditionFetched && x.flowFetched && x.announcement?.status !== 'missing'
+    );
+    window.AUCTION_CANDIDATES_SNAPSHOT = candidatesReady ? {
+      schema: 'auction-server-candidates-v1',
+      generatedAt: new Date().toISOString(),
+      day: String(pool.day),
+      updatedAt: pool.updatedAt || clockText(),
+      totalCount,
+      rows: shown.map((x) => ({
+        ...x,
+        nextDayScore: nextDaySealAssessment(x).score
+      }))
+    } : null;
     if (shown.length) void hydrateCandidateConditions(shown, pool.day);
 
     const groups = {};
@@ -2946,6 +2980,10 @@ body.modal-open{overflow:hidden}
 
   async function refreshTodayMarket(force = false) {
     if (state.marketPoolLoading) return;
+    if (state.marketPool?.cloud) {
+      if (force) await loadServerCandidates(3000);
+      return;
+    }
     const now = bjNow();
     const day = now.getDay();
     const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -3251,6 +3289,62 @@ body.modal-open{overflow:hidden}
     };
   }
 
+  function candidateCloudEligible(payload) {
+    if (!payload || !/^\d{8}$/.test(String(payload.day || '')) ||
+        !Array.isArray(payload.rows) || !payload.rows.length) return false;
+    const day = String(payload.day);
+    const today = ymdOffset(0);
+    const oldest = ymdOffset(10);
+    return day <= today && day >= oldest && payload.rows.every((row) =>
+      row?.code && row?.name && row?.mainFlow && Number.isFinite(Number(row.mainFlow.main))
+    );
+  }
+
+  function installServerCandidates(payload, persist = true) {
+    if (!candidateCloudEligible(payload)) return false;
+    const rows = payload.rows.map((row) => ({
+      ...row,
+      announcement: row.announcement || null,
+      mainFlow: row.mainFlow || null,
+      flowFetched: true,
+      conditionFetched: row.announcement?.status !== 'missing'
+    }));
+    state.marketPool = {
+      day: String(payload.day),
+      totalCount: Number(payload.totalCount) || rows.length,
+      updatedAt: payload.updatedAt || clockText(),
+      final: true,
+      cloud: true,
+      rows
+    };
+    if (persist) {
+      try { localStorage.setItem(CLOUD_CANDIDATES_KEY, JSON.stringify(payload)); } catch (_) {}
+    }
+    renderTodayMarket();
+    return true;
+  }
+
+  function restoreCachedCandidates() {
+    if (new URLSearchParams(location.search).get('automation') === '1') return false;
+    try {
+      const payload = JSON.parse(localStorage.getItem(CLOUD_CANDIDATES_KEY) || 'null');
+      return installServerCandidates(payload, false);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function loadServerCandidates(timeout = 3000) {
+    if (new URLSearchParams(location.search).get('automation') === '1') return null;
+    try {
+      await loadScript(`${SERVER_CANDIDATES_URL}?v=${Date.now()}`, 'UTF-8', timeout);
+    } catch (_) {
+      return null;
+    }
+    const payload = window.AUCTION_SERVER_CANDIDATES;
+    return installServerCandidates(payload, true) ? payload : null;
+  }
+
   async function loadArchiveRecords(timeout = 12000) {
     try {
       await loadScript(API.archive + '?v=' + Date.now(), 'UTF-8', timeout);
@@ -3402,9 +3496,10 @@ body.modal-open{overflow:hidden}
       refreshPreviousQuotes(false);
     }
     const weekend = day < 1 || day > 5;
-    const needMarket = weekend
+    const cloudCandidatesReady = Boolean(state.marketPool?.cloud && state.marketPool?.rows?.length);
+    const needMarket = !cloudCandidatesReady && (weekend
       ? (!state.marketPool?.rows?.length || state.marketPool.day !== priorTradingDay())
-      : (sec >= 34200 || !state.marketPool?.rows?.length);
+      : (sec >= 34200 || !state.marketPool?.rows?.length));
     if (needMarket) {
       refreshTodayMarket(false);
     }
@@ -3416,8 +3511,8 @@ body.modal-open{overflow:hidden}
     }
     if (state.booting && !state.locked) {
       $('selectBtn').disabled = true;
-      $('selectBtn').textContent = '同步定稿…';
-      $('actionHint').textContent = '正在读取云端统一09:25定稿';
+      $('selectBtn').textContent = '加载榜单…';
+      $('actionHint').textContent = '正在加载统一榜单';
     } else if (!state.locked && (day < 1 || day > 5)) {
       $('selectBtn').disabled = true;
       $('selectBtn').textContent = '非交易日';
@@ -3440,11 +3535,18 @@ body.modal-open{overflow:hidden}
     state.booting = true;
     state.previous = resolvePreviousSelection();
     renderPreviousSelection();
+    restoreCachedCandidates();
     restoreLatestMarketSnapshot();
+    const initialLock = loadLock();
+    if (initialLock) {
+      state.data = initialLock;
+      state.locked = true;
+      render();
+    }
     $('dateLine').textContent = dateText();
     $('selectBtn').disabled = true;
-    $('selectBtn').textContent = '同步快照…';
-    $('actionHint').textContent = '读取共享原始快照，本页独立评分';
+    $('selectBtn').textContent = initialLock ? '已选定' : '加载榜单…';
+    $('actionHint').textContent = initialLock ? '已显示本地定稿 · 后台检查统一更新' : '正在加载统一榜单';
     $('selectBtn').addEventListener('click', () => runSelection(true));
     $('refreshBtn').addEventListener('click', () => {
       if (state.booting) {
@@ -3476,9 +3578,10 @@ body.modal-open{overflow:hidden}
     setInterval(tick, 1000);
     try {
       const serverPromise = loadServerSelection(3500);
-      let records = await loadArchiveRecords(1500);
+      void loadServerCandidates(3000);
+      let records = await loadArchiveRecords(700);
     if (!records.length) {
-      // 首次只等 1.5 秒，归档 1MB 常来不及；超时后补一次长超时重试，避免退回内置旧数据
+      // 先快速显示页面；归档 1MB 常来不及，超时后后台补一次长超时重试
       setTimeout(async () => {
         const late = await loadArchiveRecords(12000);
         if (late && late.length) {
@@ -3486,7 +3589,7 @@ body.modal-open{overflow:hidden}
           renderPreviousSelection();
           updateSectionDates();
         }
-      }, 1500);
+      }, 700);
     }
       const rec = currentArchiveRecord(records);
       const shared = rec ? await modelFromArchive(rec) : null;
