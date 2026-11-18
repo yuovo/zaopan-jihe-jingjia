@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-announcement-proxy-v43">
+  <meta name="apanel-build" content="2026-11-18-announcement-jsonp-v44">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -824,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v43-20261118-announcement-proxy';
+  const VERSION = 'auction-v44-20261118-announcement-jsonp';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -1663,6 +1663,11 @@ body.modal-open{overflow:hidden}
       const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) payload = await response.json();
     } catch (_) {}
+    if (!payload?.data?.list) {
+      try {
+        payload = await jsonpCallback(url, null, 12000);
+      } catch (_) {}
+    }
     if (!payload?.data?.list) {
       try {
         const response = await fetch(API.announceProxy + url, { cache: 'no-store' });
