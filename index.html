@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-announcement-retry-v45">
+  <meta name="apanel-build" content="2026-11-18-announcement-final-v46">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -824,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v45-20261118-announcement-retry';
+  const VERSION = 'auction-v46-20261118-announcement-final';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -1368,6 +1368,16 @@ body.modal-open{overflow:hidden}
     } finally {
       state.candidateConditionLoading = false;
       state.candidateConditionDay = '';
+    }
+    if (state.marketPool?.day === day) {
+      const unresolved = pending.some((x) => !x.announcement || x.announcement.status === 'missing');
+      if (unresolved) {
+        setTimeout(() => {
+          if (!state.candidateConditionLoading && state.marketPool?.day === day) renderTodayMarket();
+        }, 60000);
+      } else {
+        renderTodayMarket();
+      }
     }
   }
 
