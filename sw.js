@@ -1,7 +1,8 @@
-const CACHE = 'zaopan-auction-static-v27';
+const CACHE = 'zaopan-auction-static-v28';
 const ASSETS = [
   './index.html', './manifest.webmanifest',
-  './apple-touch-icon.png', './auction-icon-192.png', './auction-icon-512.png'
+  './apple-touch-icon.png', './auction-icon-192.png', './auction-icon-512.png',
+  './auction-current.js'
 ];
 
 self.addEventListener('install', (event) => {

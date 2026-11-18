@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-17-book-fix-v38">
+  <meta name="apanel-build" content="2026-11-18-cloud-auto-v39">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -791,6 +791,9 @@ body.modal-open{overflow:hidden}
   'use strict';
 
   const archiveOverride = new URLSearchParams(location.search).get('archive');
+  const SERVER_SELECTION_URL = location.protocol === 'file:'
+    ? 'https://yuovo.github.io/zaopan-jihe-jingjia/auction-current.js'
+    : './auction-current.js';
   const API = {
     zt: 'https://push2ex.eastmoney.com/getTopicZTPool',
     yzt: 'https://push2ex.eastmoney.com/getYesterdayZTPool',
@@ -803,7 +806,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v38-20261117-book-fix';
+  const VERSION = 'auction-v39-20261118-cloud-auto';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2933,7 +2936,8 @@ body.modal-open{overflow:hidden}
       });
       const existing = loadLock();
       const nextFingerprint = lockFingerprint(data);
-      if (existing && lockFingerprint(existing) !== nextFingerprint) {
+      const allowCanonicalReplace = reason === 'server-canonical';
+      if (existing && !allowCanonicalReplace && lockFingerprint(existing) !== nextFingerprint) {
         appendLockAudit('blocked-rewrite', {
           reason,
           existing: JSON.parse(lockFingerprint(existing)),
@@ -2944,7 +2948,7 @@ body.modal-open{overflow:hidden}
       const incomingByCode = Object.fromEntries(
         (data?.picks || []).map((pick) => [String(pick.code || ''), pick])
       );
-      const lockedPicks = existing
+      const lockedPicks = existing && !allowCanonicalReplace
         ? (existing.picks || []).map((lockedPick) => {
           const incoming = incomingByCode[String(lockedPick.code || '')];
           const merged = { ...lockedPick };
@@ -2957,14 +2961,14 @@ body.modal-open{overflow:hidden}
           return merged;
         })
         : (data?.picks || []);
-      const lockedData = existing ? { ...existing, picks: lockedPicks } : data;
+      const lockedData = existing && !allowCanonicalReplace ? { ...existing, picks: lockedPicks } : data;
       const record = {
         schema: LOCK_SCHEMA_VERSION,
         version: VERSION,
         day: ymdOffset(0),
         data: {
           ...lockedData,
-          lockedAt: existing?.lockedAt || data?.lockedAt || clockText()
+          lockedAt: (!allowCanonicalReplace && existing?.lockedAt) || data?.lockedAt || clockText()
         }
       };
       localStorage.setItem(LOCK_KEY, JSON.stringify(record));
@@ -2978,6 +2982,24 @@ body.modal-open{overflow:hidden}
       const x = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null');
       return x && x.day === ymdOffset(0) && x.data && Array.isArray(x.data.picks) ? x.data : null;
     } catch (_) { return null; }
+  }
+
+  async function loadServerSelection(timeout = 4000) {
+    if (new URLSearchParams(location.search).get('automation') === '1') return null;
+    try {
+      await loadScript(`${SERVER_SELECTION_URL}?v=${Date.now()}`, 'UTF-8', timeout);
+    } catch (_) {
+      return null;
+    }
+    const payload = window.AUCTION_SERVER_SELECTION;
+    if (!payload || String(payload.day || '') !== ymdOffset(0) ||
+        !payload.data || !Array.isArray(payload.data.picks)) return null;
+    return {
+      ...payload.data,
+      lockedAt: payload.data.lockedAt || payload.lockedAt || clockText(),
+      selectionSource: 'server-canonical',
+      serverGeneratedAt: payload.generatedAt || ''
+    };
   }
 
   async function loadArchiveRecords(timeout = 12000) {
@@ -3200,6 +3222,7 @@ body.modal-open{overflow:hidden}
     tick();
     setInterval(tick, 1000);
     try {
+      const serverPromise = loadServerSelection(3500);
       let records = await loadArchiveRecords(1500);
     if (!records.length) {
       // 首次只等 1.5 秒，归档 1MB 常来不及；超时后补一次长超时重试，避免退回内置旧数据
@@ -3214,15 +3237,18 @@ body.modal-open{overflow:hidden}
     }
       const rec = currentArchiveRecord(records);
       const shared = rec ? await modelFromArchive(rec) : null;
+      const server = await serverPromise;
       const storedLock = loadLock();
-      const saved = storedLock || shared;
+      const saved = server || storedLock || shared;
       state.previous = resolvePreviousSelection();
       renderPreviousSelection();
       if (saved) {
+        if (server) saveLock(server, 'server-canonical');
         state.data = saved;
         state.locked = true;
         render();
-        if (!storedLock) saveLock(saved, 'shared-initial');
+        if (!storedLock && !server) saveLock(saved, 'shared-initial');
+        if (server) $('actionHint').textContent = '云端09:26定稿已同步 · 手机电脑同一榜单';
         const todayWritten = loadSelectionHistory()
           .some((x) => String(x && x.day || '') === ymdOffset(0));
         if (!todayWritten) {

@@ -1,0 +1,11 @@
+{
+  "name": "zaopan-auction-automation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node automation/capture-selection.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.55.0"
+  }
+}

@@ -1,0 +1,1 @@
+window.AUCTION_SERVER_SELECTION = null;
