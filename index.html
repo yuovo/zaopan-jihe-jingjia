@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-cloud-auto-v39">
+  <meta name="apanel-build" content="2026-11-18-nextday-score-v40">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -232,7 +232,7 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .candidate-row time{color:#6f7a75;font:600 9.5px/1.3 Consolas,monospace;white-space:nowrap}
 .candidate-row em{color:#9a8c77;font-size:9.5px;font-style:normal;text-align:right}
 .candidate-row .final-pct{display:block;margin-top:4px}
-.candidate-metrics{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.candidate-metrics{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:6px}
 .candidate-metrics .final-pct,.candidate-metrics .candidate-score-line{margin-top:0;white-space:nowrap}
 .candidate-reason-brief{
   display:-webkit-box;margin:0;color:#465f58;font-size:10.5px;line-height:1.48;
@@ -243,6 +243,17 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
 .candidate-row[role="button"]:active,.ladder-chip[role="button"]:active{transform:scale(.985)}
 .candidate-row[role="button"]:focus-visible,.ladder-chip[role="button"]:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .candidate-score-line{margin-top:5px;color:#9a6a2b;font:700 10px/1.3 Consolas,monospace}
+.candidate-score-stack{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:1px;white-space:nowrap}
+.candidate-score-stack strong{color:#1c5b4d;font:700 18px/1 Georgia,serif}
+.candidate-score-stack span{color:#7c6b51;font:700 9px/1.2 Consolas,monospace}
+.candidate-score-stack em{color:#9a8c77;font:600 8.5px/1.2 Consolas,monospace;font-style:normal}
+.nextday-factors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:2px}
+.nextday-factor{padding:5px 6px;border:1px solid #e7ded0;border-radius:8px;background:#faf7f0;min-width:0}
+.nextday-factor small{display:block;margin:0;color:#8b928e;font:600 8.5px/1.2 "Microsoft YaHei",sans-serif}
+.nextday-factor b{display:block;margin-top:2px;color:#45625a;font:700 9.5px/1.35 Consolas,"Microsoft YaHei",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nextday-factor.risk b{color:#a9343d}.nextday-factor.ok b{color:#17624f}.nextday-factor.warn b{color:#a36520}
+.nextday-gate{margin:2px 0 0;padding:6px 7px;border-radius:8px;background:#edf6f2;color:#315d52;font-size:9.5px;line-height:1.5}
+.nextday-gate.risk{background:#fbecee;color:#913840}.nextday-gate.warn{background:#fbf4e7;color:#875d24}
 .final-pct{font:700 9.5px/1.3 Consolas,monospace;white-space:nowrap}
 .final-pct.up{color:var(--red)}.final-pct.down{color:var(--teal)}
 .sector-rank{color:#7e6846}
@@ -546,6 +557,13 @@ body.modal-open{overflow:hidden}
   .candidate-metrics{margin-top:1px}
   .candidate-metrics .candidate-score-line{margin-top:0}
   .candidate-reason-brief{font-size:11.5px;line-height:1.46;-webkit-line-clamp:2}
+  .candidate-score-stack strong{font-size:20px}
+  .candidate-score-stack span{font-size:10px}
+  .candidate-score-stack em{font-size:9.5px}
+  .nextday-factor{padding:6px}
+  .nextday-factor small{font-size:9.5px}
+  .nextday-factor b{font-size:10.5px}
+  .nextday-gate{font-size:10.5px;line-height:1.55}
   .candidate-open{margin-top:auto;font-size:10.5px;line-height:1.4}
   .final-pct{font-size:11.5px;line-height:1.45}
   .ladder-pool{padding:11px}
@@ -806,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v39-20261118-cloud-auto';
+  const VERSION = 'auction-v40-20261118-nextday-score';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -845,10 +863,12 @@ body.modal-open{overflow:hidden}
     marketPool: null, marketPoolAt: 0, marketPoolLoading: false,
     marketFinalAt: 0, marketFinalLoading: false,
     closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {},
-    confirmAt: 0, confirmLoading: false
+    confirmAt: 0, confirmLoading: false,
+    candidateConditionLoading: false, candidateConditionDay: ''
   };
   let reasonRequestSerial = 0;
   const announcementCache = new Map();
+  const candidateFlowCache = new Map();
 
   const $ = (id) => document.getElementById(id);
   const pad = (n) => String(n).padStart(2, '0');
@@ -1169,7 +1189,7 @@ body.modal-open{overflow:hidden}
     };
   }
 
-  function candidateReasonOf(x) {
+  function candidateReasonOf(x, assessment = nextDaySealAssessment(x)) {
     const base = limitReasonOf(x);
     const score = Number(x.candidateScore);
     const scoreText = !Number.isFinite(score)
@@ -1183,10 +1203,20 @@ body.modal-open{overflow:hidden}
       brief: `${base.brief}；${scoreText}，因此进入下一交易日跟踪名单`,
       detail: [
         ...base.detail,
-        `${scoreText}。该评分只使用当日涨停盘口与板块结构，不包含次日竞价分。`,
+        `${scoreText}。基础评分只使用当日涨停盘口与板块结构，不包含次日竞价分。`,
+        `明日封板交易分${fmt(assessment.score, 1)}。${assessment.conditions.join('；')}。`,
+        `明日参考封单量约${formatMoney(assessment.requiredSeal)}，这是按流通市值、换手率和连板高度估算的维持封板参考，不是实际封单承诺。`,
         '次日仍需竞价涨幅落在 -2.5% 至 6.5%，并在 9:30–9:45 站上开盘价和分时均价后才具备执行条件。'
       ],
-      facts: [...base.facts, ['候选评分', Number.isFinite(score) ? fmt(score, 1) : '--']]
+      facts: [
+        ...base.facts,
+        ['基础候选分', Number.isFinite(score) ? fmt(score, 1) : '--'],
+        ['明日封板分', fmt(assessment.score, 1)],
+        ['公告', assessment.announcementText],
+        ['主力资金', assessment.flowText],
+        ['流通市值', assessment.capText],
+        ['明日参考封单', formatMoney(assessment.requiredSeal)]
+      ]
     };
   }
 
@@ -1222,6 +1252,116 @@ body.modal-open{overflow:hidden}
       probability, label,
       note: `基于预评分 ${fmt(score, 1)}、${x.sectorLeader ? '板块龙头' : `板块第${x.sectorRank}`}、${Number(x.breaks) ? `开板${x.breaks}次` : '未开板'}和 ${x.boards}板身位综合估算；不含明日竞价，属于盘后模型概率。`
     };
+  }
+
+  function marketCapInfo(floatCap) {
+    const value = Number(floatCap);
+    if (!(value > 0)) return { label: '市值待补', size: 'unknown', wide: '', score: 0 };
+    const yi = value / 100000000;
+    if (yi <= 80) return { label: `${fmt(yi, 1)}亿·小盘`, size: 'small', wide: `${fmt(yi, 1)}亿`, score: 2 };
+    if (yi <= 300) return { label: `${fmt(yi, 0)}亿·中盘`, size: 'mid', wide: `${fmt(yi, 0)}亿`, score: 1 };
+    if (yi <= 800) return { label: `${fmt(yi, 0)}亿·大盘`, size: 'large', wide: `${fmt(yi, 0)}亿`, score: -1 };
+    return { label: `${fmt(yi, 0)}亿·超大盘`, size: 'mega', wide: `${fmt(yi, 0)}亿`, score: -3 };
+  }
+
+  function nextDaySealAssessment(x) {
+    const baseScore = Number(x?.candidateScore);
+    const floatCap = Number(x?.floatCap);
+    const amount = Number(x?.amount);
+    const sealAmount = Number(x?.sealAmount);
+    const turnover = Number(x?.turnover);
+    const boards = Math.max(1, Number(x?.boards) || 1);
+    const sealRatio = amount > 0 && sealAmount > 0 ? sealAmount / amount * 100 : NaN;
+    const cap = marketCapInfo(floatCap);
+    const sealRate = (turnover >= 20 ? .012 : turnover >= 10 ? .010 : .008) + (boards >= 3 ? .002 : 0);
+    const requiredSeal = Number.isFinite(floatCap) && floatCap > 0
+      ? clamp(floatCap * sealRate, 30000000, 1200000000)
+      : NaN;
+    const sealCoverage = requiredSeal > 0 && sealAmount > 0 ? sealAmount / requiredSeal : NaN;
+    const mainFlow = Number(x?.mainFlow?.main);
+    let score = Number.isFinite(baseScore) ? baseScore : 0;
+
+    if (x?.announcement?.risk) score -= 18;
+    else if (x?.announcement?.status === 'ok') score += 2;
+    if (Number.isFinite(mainFlow)) score += mainFlow > 0 ? 4 : mainFlow < 0 ? -5 : 0;
+    if (Number.isFinite(sealRatio)) {
+      score += sealRatio >= 20 ? 5 : sealRatio >= 10 ? 3 : sealRatio >= 5 ? 1 : sealRatio < 1 ? -2 : 0;
+    }
+    if (Number.isFinite(sealCoverage)) score += sealCoverage >= 1 ? 4 : sealCoverage >= .7 ? 1 : sealCoverage < .5 ? -3 : 0;
+    score += cap.score;
+    score = Math.round(clamp(score, 0, 99) * 10) / 10;
+
+    const announcementText = x?.announcement
+      ? x.announcement.risk ? '有风险' : x.announcement.status === 'ok' ? '核查通过' : '未核查'
+      : '待核查';
+    const flowText = Number.isFinite(mainFlow) ? flowMoney(mainFlow).text : '待核查';
+    const sealText = sealAmount > 0
+      ? `${formatMoney(sealAmount)}${Number.isFinite(sealRatio) ? `·${fmt(sealRatio, 1)}%` : ''}`
+      : '封单待补';
+    const requiredText = Number.isFinite(requiredSeal) ? formatMoney(requiredSeal) : '待估算';
+    const tone = x?.announcement?.risk ? 'risk'
+      : !x?.announcement || !Number.isFinite(mainFlow) || (Number.isFinite(mainFlow) && mainFlow < 0) ||
+        !Number.isFinite(sealCoverage) || sealCoverage < .7
+        ? 'warn' : 'ok';
+    let gate;
+    if (x?.announcement?.risk) gate = '公告存在风险，明日默认放弃封板接力';
+    else if (!x?.announcement) gate = '公告待核查，核查通过前不确认封板条件';
+    else if (!Number.isFinite(mainFlow)) gate = '主力资金待核查，明日需转为净流入';
+    else if (mainFlow < 0) gate = '主力净流出，明日必须转为净流入并出现封单承接';
+    else if (!Number.isFinite(sealCoverage)) gate = `明日封单参考需≥${requiredText}`;
+    else if (sealCoverage < .7) gate = `今日封单仅达参考值的${fmt(sealCoverage * 100, 0)}%，明日需≥${requiredText}`;
+    else gate = '封板条件基本达标，仍需明日竞价和09:30–09:45承接确认';
+
+    return {
+      score, baseScore, requiredSeal, sealRatio, sealCoverage, mainFlow,
+      announcementText, flowText, sealText, requiredText,
+      capText: cap.label, capWide: cap.wide,
+      announcementTone: x?.announcement?.risk ? 'risk' : x?.announcement?.status === 'ok' ? 'ok' : 'warn',
+      flowTone: Number.isFinite(mainFlow) ? mainFlow > 0 ? 'ok' : mainFlow < 0 ? 'risk' : 'warn' : 'warn',
+      sealTone: Number.isFinite(sealCoverage) && sealCoverage >= 1 ? 'ok' : 'warn',
+      tone, gate,
+      conditions: [
+        `公告${announcementText}`,
+        `主力资金${flowText}`,
+        `封单${sealText}`,
+        `流通市值${cap.label}`,
+        `明日参考封单≥${requiredText}`
+      ]
+    };
+  }
+
+  async function candidateFlowForDay(code, day) {
+    const key = `${day}:${code}`;
+    const cached = candidateFlowCache.get(key);
+    if (cached && Date.now() - cached.cachedAt < 10 * 60000) return cached.value;
+    const value = await orderFlowForDay(code, day);
+    candidateFlowCache.set(key, { cachedAt: Date.now(), value });
+    return value;
+  }
+
+  async function hydrateCandidateConditions(rows, day) {
+    const pending = rows.filter((x) => !x.conditionFetched);
+    if (!pending.length) return;
+    if (state.candidateConditionLoading && state.candidateConditionDay === day) return;
+    state.candidateConditionLoading = true;
+    state.candidateConditionDay = day;
+    try {
+      for (let start = 0; start < pending.length; start += 4) {
+        await Promise.all(pending.slice(start, start + 4).map(async (x) => {
+          const [announcement, mainFlow] = await Promise.all([
+            announcementCheck(x.code),
+            candidateFlowForDay(x.code, day)
+          ]);
+          x.announcement = announcement;
+          x.mainFlow = mainFlow;
+          x.conditionFetched = true;
+        }));
+        if (state.marketPool?.day === day) renderTodayMarket();
+      }
+    } finally {
+      state.candidateConditionLoading = false;
+      state.candidateConditionDay = '';
+    }
   }
 
   async function trendsForDay(code, day) {
@@ -2645,7 +2785,7 @@ body.modal-open{overflow:hidden}
     const updateLabel = pool.updatedAt ? ` · 更新 ${pool.updatedAt}` : '';
     $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
     $('ladderTitle').textContent = `${dayLabel} 连板池`;
-    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；候选预评分由连板高度、首封时间、开板次数、板块强度和龙头加成计算，不含次日竞价分；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
+    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；基础分由连板高度、首封时间、开板次数、板块强度和龙头加成计算。明日封板分在此基础上加入近30日公告风险、当日主力资金、封单占成交、封单覆盖率和流通市值。明日参考封单量按流通市值×换手率档位×连板高度估算；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
     $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；连板采用同花顺式「X天Y板」口径；板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
@@ -2656,7 +2796,8 @@ body.modal-open{overflow:hidden}
     const shown = ranked.slice(0, 20);
     $('nextCandidateCount').textContent = `${ranked.length}只${ranked.length > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => {
-      const decision = candidateReasonOf(x);
+      const assessment = nextDaySealAssessment(x);
+      const decision = candidateReasonOf(x, assessment);
       return `
       <div class="candidate-row" role="button" tabindex="0"
         data-reason-code="${esc(x.code)}" data-reason-kind="candidate"
@@ -2668,8 +2809,17 @@ body.modal-open{overflow:hidden}
         <small>${esc(x.code.slice(2))} · 板块：${esc(x.sector)}</small>
         <div class="candidate-metrics">
           ${finalPctMarkup(x.code,x.finalPct,closeLabel)}
-          <div class="candidate-score-line">预评分 ${fmt(x.candidateScore, 1)}</div>
+          <div class="candidate-score-stack">
+            <strong>${fmt(assessment.score, 1)}</strong><span>明日封板分</span><em>基础${fmt(x.candidateScore, 1)}</em>
+          </div>
         </div>
+        <div class="nextday-factors">
+          <span class="nextday-factor ${assessment.announcementTone}"><small>公告</small><b>${esc(assessment.announcementText)}</b></span>
+          <span class="nextday-factor ${assessment.flowTone}"><small>主力资金</small><b>${esc(assessment.flowText)}</b></span>
+          <span class="nextday-factor ${assessment.sealTone}"><small>封单 / 成交</small><b>${esc(assessment.sealText)}</b></span>
+          <span class="nextday-factor"><small>流通市值 / 明日需封</small><b>${esc(assessment.capWide)}→${esc(assessment.requiredText)}</b></span>
+        </div>
+        <p class="nextday-gate ${assessment.tone}">${esc(assessment.gate)}</p>
         <p class="candidate-reason-brief">${esc(decision.brief)}</p>
         <div class="candidate-foot">
           <time>首封 ${timeText(x.firstTime).slice(0, 5)}</time>
@@ -2678,6 +2828,7 @@ body.modal-open{overflow:hidden}
         <span class="candidate-open">查看完整入选判断 →</span>
       </div>`;
     }).join('') : '<div class="empty-state">今日暂无符合主板口径的涨停候选。</div>';
+    if (shown.length) void hydrateCandidateConditions(shown, pool.day);
 
     const groups = {};
     pool.rows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
@@ -2728,6 +2879,9 @@ body.modal-open{overflow:hidden}
           if (old) {
             if (Number.isFinite(Number(old.finalPct))) x.finalPct = Number(old.finalPct);
             if (Number.isFinite(Number(old.finalPrice))) x.finalPrice = Number(old.finalPrice);
+            if (old.announcement) x.announcement = old.announcement;
+            if (old.mainFlow) x.mainFlow = old.mainFlow;
+            if (old.conditionFetched) x.conditionFetched = true;
           }
         });
         const finalDay = resultDay < ymdOffset(0) || sec >= 54000;
