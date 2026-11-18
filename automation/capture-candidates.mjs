@@ -127,7 +127,7 @@ async function main() {
       ...snapshot,
       schema: 'auction-server-candidates-v1',
       generatedAt: new Date().toISOString(),
-      sourceVersion: 'auction-v49-20261118-cloud-candidates'
+      sourceVersion: 'auction-v50-20261118-cloud-candidates'
     };
     fs.writeFileSync(
       outputFile,
