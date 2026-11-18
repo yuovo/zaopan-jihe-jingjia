@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-nextday-sort-v41">
+  <meta name="apanel-build" content="2026-11-18-announcement-batch-v42">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -824,7 +824,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v41-20261118-nextday-sort';
+  const VERSION = 'auction-v42-20261118-announcement-batch';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -1346,12 +1346,16 @@ body.modal-open{overflow:hidden}
     state.candidateConditionLoading = true;
     state.candidateConditionDay = day;
     try {
+      const announcementMap = await announcementBatchCheck(pending.map((x) => x.code));
+      pending.forEach((x) => {
+        const announcement = announcementMap.get(x.code);
+        if (announcement) x.announcement = announcement;
+      });
+      if (state.marketPool?.day === day) renderTodayMarket();
       for (let start = 0; start < pending.length; start += 4) {
         await Promise.all(pending.slice(start, start + 4).map(async (x) => {
-          const [announcement, mainFlow] = await Promise.all([
-            announcementCheck(x.code),
-            candidateFlowForDay(x.code, day)
-          ]);
+          const announcement = x.announcement || await announcementCheck(x.code);
+          const mainFlow = await candidateFlowForDay(x.code, day);
           x.announcement = announcement;
           x.mainFlow = mainFlow;
           x.conditionFetched = true;
@@ -1623,7 +1627,8 @@ body.modal-open{overflow:hidden}
   async function announcementCheck(code) {
     const now = Date.now();
     const cached = announcementCache.get(code);
-    if (cached && now - cached.cachedAt < 15 * 60000) return cached.value;
+    const ttl = cached?.value?.status === 'missing' ? 60000 : 15 * 60000;
+    if (cached && now - cached.cachedAt < ttl) return cached.value;
     const numeric = String(code || '').replace(/^(sh|sz|bj)/, '');
     const url = `${API.announce}?sr=-1&page_size=50&page_index=1&ann_type=A&client_source=web&stock_list=${numeric}`;
     let payload = null;
@@ -1657,6 +1662,60 @@ body.modal-open{overflow:hidden}
     };
     announcementCache.set(code, { cachedAt: now, value });
     return value;
+  }
+
+  async function announcementBatchCheck(codes) {
+    const now = Date.now();
+    const result = new Map();
+    const codeMap = new Map();
+    [...new Set(codes.filter(Boolean))].forEach((code) => {
+      const cached = announcementCache.get(code);
+      const ttl = cached?.value?.status === 'missing' ? 60000 : 15 * 60000;
+      if (cached && now - cached.cachedAt < ttl) result.set(code, cached.value);
+      else codeMap.set(String(code).replace(/^(sh|sz|bj)/, ''), code);
+    });
+    if (!codeMap.size) return result;
+    const numericCodes = [...codeMap.keys()];
+    const url = `${API.announce}?sr=-1&page_size=500&page_index=1&ann_type=A&client_source=web&stock_list=${numericCodes.join(',')}`;
+    let payload = null;
+    try {
+      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) payload = await response.json();
+    } catch (_) {}
+    if (!payload?.data?.list) {
+      codeMap.forEach((code) => {
+        const missing = { status: 'missing', risk: false, latestDate: '', latestTitle: '', titles: [] };
+        announcementCache.set(code, { cachedAt: now, value: missing });
+        result.set(code, missing);
+      });
+      return result;
+    }
+    const cutoff = new Date(now - 30 * 86400000).toISOString().slice(0, 10);
+    const grouped = Object.fromEntries(numericCodes.map((code) => [code, []]));
+    payload.data.list.forEach((item) => {
+      const date = String(item.display_time || item.notice_date || '').slice(0, 10);
+      const title = String(item.title || '');
+      if (!date || date < cutoff || !title) return;
+      (item.codes || []).forEach((mapping) => {
+        const numeric = String(mapping?.stock_code || '');
+        if (grouped[numeric]) grouped[numeric].push({ date, title });
+      });
+    });
+    const riskPattern = /(立案|调查|行政处罚|监管函|问询函|警示函|关注函|退市风险|终止上市|重大诉讼|违规|风险提示|业绩预亏|预亏|减持|股票交易异常波动)/;
+    codeMap.forEach((code, numeric) => {
+      const recent = grouped[numeric].sort((a, b) => b.date.localeCompare(a.date));
+      const risky = recent.filter((item) => riskPattern.test(item.title));
+      const value = {
+        status: 'ok',
+        risk: risky.length > 0,
+        latestDate: recent[0]?.date || '',
+        latestTitle: recent[0]?.title || '',
+        titles: risky.slice(0, 3).map((item) => item.title)
+      };
+      announcementCache.set(code, { cachedAt: now, value });
+      result.set(code, value);
+    });
+    return result;
   }
 
   function announcementMarkup(pick) {
