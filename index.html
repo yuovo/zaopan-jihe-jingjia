@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f4f0e7">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-cloud-candidates-v50">
+  <meta name="apanel-build" content="2026-11-18-cloud-candidates-v51">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -827,7 +828,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v50-20261118-cloud-candidates';
+  const VERSION = 'auction-v51-20261118-cloud-candidates';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -3595,8 +3596,8 @@ body.modal-open{overflow:hidden}
       }, 700);
     }
       const rec = currentArchiveRecord(records);
-      const shared = rec ? await modelFromArchive(rec) : null;
       const server = await serverPromise;
+      const shared = server ? null : rec ? await modelFromArchive(rec) : null;
       const storedLock = loadLock();
       const saved = server || storedLock || shared;
       state.previous = resolvePreviousSelection();
