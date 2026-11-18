@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-cloud-candidates-v52">
+  <meta name="apanel-build" content="2026-11-18-cloud-candidates-v53">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -828,7 +828,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v52-20261118-cloud-candidates';
+  const VERSION = 'auction-v53-20261118-cloud-candidates';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -1396,18 +1396,18 @@ body.modal-open{overflow:hidden}
       `&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&ndays=5&ut=${EM_FLOW_UT}`;
     let payload = null;
     try {
-      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
-      if (response.ok) payload = await response.json();
+      const proxied = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (proxied.ok) {
+        const text = await proxied.text();
+        const marker = text.indexOf('Markdown Content:');
+        const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
+        payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
+      }
     } catch (_) {}
     if (!payload) {
       try {
-        const proxied = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
-        if (proxied.ok) {
-          const text = await proxied.text();
-          const marker = text.indexOf('Markdown Content:');
-          const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
-          payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
-        }
+        const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+        if (response.ok) payload = await response.json();
       } catch (_) {}
     }
     return (Array.isArray(payload?.data?.trends) ? payload.data.trends : [])
@@ -1432,22 +1432,22 @@ body.modal-open{overflow:hidden}
       `&secid=${secid}`;
     let payload = null;
     try {
-      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
-      if (response.ok) payload = await response.json();
+      const response = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) {
+        const text = await response.text();
+        const marker = text.indexOf('Markdown Content:');
+        const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
+        payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
+      }
     } catch (_) {}
     if (!payload) {
-      try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
+      try {
+        const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+        if (response.ok) payload = await response.json();
+      } catch (_) {}
     }
     if (!payload) {
-      try {
-        const response = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
-        if (response.ok) {
-          const text = await response.text();
-          const marker = text.indexOf('Markdown Content:');
-          const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
-          payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
-        }
-      } catch (_) {}
+      try { payload = await jsonpCallback(url, null, 12000); } catch (_) {}
     }
     const line = (Array.isArray(payload?.data?.klines) ? payload.data.klines : [])
       .map((raw) => String(raw || '').split(','))
@@ -2314,22 +2314,22 @@ body.modal-open{overflow:hidden}
       `&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&ndays=1&ut=${EM_FLOW_UT}`;
     let payload = null;
     try {
-      const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
-      if (response.ok) payload = await response.json();
+      const response = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (response.ok) {
+        const text = await response.text();
+        const marker = text.indexOf('Markdown Content:');
+        const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
+        payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
+      }
     } catch (_) {}
     if (!payload) {
-      try { payload = await jsonpCallback(url, null, 10000); } catch (_) {}
+      try {
+        const response = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+        if (response.ok) payload = await response.json();
+      } catch (_) {}
     }
     if (!payload) {
-      try {
-        const response = await fetch(API.announceProxy + url + '&_=' + Date.now(), { cache: 'no-store' });
-        if (response.ok) {
-          const text = await response.text();
-          const marker = text.indexOf('Markdown Content:');
-          const jsonText = (marker >= 0 ? text.slice(marker + 17) : text).trim();
-          payload = JSON.parse(jsonText.slice(jsonText.indexOf('{')));
-        }
-      } catch (_) {}
+      try { payload = await jsonpCallback(url, null, 10000); } catch (_) {}
     }
     const today = ymdOffset(0);
     return (Array.isArray(payload?.data?.trends) ? payload.data.trends : [])
