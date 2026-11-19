@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-20-shared-archive-v57">
+  <meta name="apanel-build" content="2026-11-20-shared-archive-v58">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -826,7 +826,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v57-20261120-shared-archive';
+  const VERSION = 'auction-v58-20261120-shared-archive';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2055,7 +2055,7 @@ body.modal-open{overflow:hidden}
       ...snapshotDays
     ])].sort().at(-1);
     if (!latestDay) return null;
-    const selection = historyByDay[latestDay] || archiveByDay[latestDay] || legacyByDay[latestDay] || null;
+    const selection = archiveByDay[latestDay] || historyByDay[latestDay] || legacyByDay[latestDay] || null;
     return selection
       ? JSON.parse(JSON.stringify(selection))
       : { day: latestDay, picks: [], lockedAt: '' };
