@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-18-cloud-candidates-v53">
+  <meta name="apanel-build" content="2026-11-20-shared-archive-v56">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -828,7 +828,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v53-20261118-cloud-candidates';
+  const VERSION = 'auction-v56-20261120-shared-archive';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2584,13 +2584,17 @@ body.modal-open{overflow:hidden}
       else if (!Number.isFinite(c.ydayAmount)) c.filtered = '昨日成交额缺失';
       else if (c.gap < -7) c.filtered = '低开超过-7%';
       else if (c.gap > 6.5) c.filtered = '高开超过6.5%';
+      else if (c.gap < -2.5) c.filtered = '低开超过-2.5%，不参与打板';
+      else if (c.gap > 3) c.filtered = '高开超过3%，不追价';
       else if (Number.isFinite(c.bookRatio) && c.bookRatio < -30) c.filtered = '竞价委比低于-30%';
       else if (c.code === rep.code && repGap < -3) c.filtered = '最高标竞价低于-3%';
       else if (!Number.isFinite(c.firstTime)) c.filtered = '昨日封板时间缺失';
       else if (c.firstTime > 143000) c.filtered = '昨日14:30后封板';
       else if (c.firstTime > 133000 && c.gap < -1) c.filtered = '13:30后封板且竞价低于-1%';
-      else if (c.sectorCount < 2) c.filtered = '孤立涨停，无板块联动';
-      else if (c.sectorRank > 3) c.filtered = '板块辨识度未进前三';
+      else if (c.height === 2 && c.firstTime > 110000) c.filtered = '2进3非上午强势板';
+      else if (c.height >= 3 && c.firstTime > 130000) c.filtered = '高位板未在午前封板';
+      else if (c.sectorCount < 3) c.filtered = '板块涨停不足3只';
+      else if (c.sectorRank > 2) c.filtered = '板块辨识度未进前二';
       else if (c.height === 1 && c.firstTime > 100000) c.filtered = '1进2非早盘强势板';
       else if (cycle.label === '退潮期' && c.height >= 2) c.filtered = '退潮期不打高位板';
       else if (cycle.label === '冰点期' && c.height >= 4) c.filtered = '冰点期不参与高位板';
@@ -2644,10 +2648,13 @@ body.modal-open{overflow:hidden}
     if (poolSize >= 60) env = { threshold: 66, multiplier: .9, maxPicks: 1, poolSize };
     else if (poolSize >= 20 && poolSize < 40) env = { threshold: 59, multiplier: 1.05, maxPicks: 2, poolSize };
     else if (poolSize > 0 && poolSize < 20) env = { threshold: 73, multiplier: 1, maxPicks: 0, poolSize };
-    if (cycle.label === '退潮期') {
+    if (['退潮期', '分歧期'].includes(cycle.label)) {
       env.threshold = Math.max(env.threshold, 66);
-      env.maxPicks = Math.min(env.maxPicks, 1);
-    } else if (['冰点期', '高潮期', '分歧期'].includes(cycle.label)) env.maxPicks = Math.min(env.maxPicks, 1);
+      env.maxPicks = 0;
+    } else if (['冰点期', '高潮期'].includes(cycle.label)) {
+      env.maxPicks = 1;
+    }
+    env.maxPicks = Math.min(env.maxPicks, 1);
 
     scorePool.filter((c) => !c.filtered && !c.watchOnly).forEach((c) => {
       const a = scoreA(c.gap);
@@ -2697,8 +2704,12 @@ body.modal-open{overflow:hidden}
     }
     await Promise.all(picks.map(async (pick) => {
       pick.announcement = await announcementCheck(pick.code);
-      if (pick.announcement.risk) pick.position = '≤5%';
+      if (pick.announcement.risk) pick.excludedByAnnouncement = true;
     }));
+    if (picks.some((pick) => pick.excludedByAnnouncement)) {
+      picks = picks.filter((pick) => !pick.excludedByAnnouncement);
+      portfolioRule = '公告存在明确风险，取消本次优选';
+    }
     const rankMap = Object.fromEntries(picks.map((p) => [p.code, p.rank]));
     all.forEach((c) => { c.rank = rankMap[c.code] || 0; });
     return {
@@ -2715,6 +2726,7 @@ body.modal-open{overflow:hidden}
     if (!d) return;
     const reviewed = (d.picks || []).filter((p) => p.closeStatus && Number.isFinite(Number(p.closePct)));
     const closed = reviewed.filter((p) => p.advanced).length;
+    const sharedArchive = d.selectionSource === 'independent-snapshot' && Boolean(d.archiveGeneratedAt);
     const closeLabel = marketCloseLabel();
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     $('dateLine').textContent = dateText();
@@ -2725,7 +2737,9 @@ body.modal-open{overflow:hidden}
     const verdictDetail = reviewed.length
       ? `收盘核验 ${reviewed.length} 只：封板 ${closed} 只，触板未封 ${reviewed.filter((p) => p.closeStatus === '触板未封').length} 只，未触板 ${reviewed.filter((p) => p.closeStatus === '未触板').length} 只。`
       : (d.snapshotId
-        ? '共享原始快照已读取；本页独立执行过滤、评分和排名。'
+        ? (sharedArchive
+          ? '共享09:25归档已读取；手机、平板、电脑使用同一份原始快照和同一套规则。'
+          : '共享原始快照已读取；本页独立执行过滤、评分和排名。')
         : (d.picks.length ? '09:25 评分已锁定；目标为当日封板，15:00后自动补收盘结果。' : '按纪律保持空仓，不降低标准补票。'));
     $('verdictSub').textContent = verdictDetail +
       (d.picks.length && d.portfolioRule && !reviewed.length ? ` ${d.portfolioRule}。` : '');
@@ -2739,15 +2753,19 @@ body.modal-open{overflow:hidden}
       ? `双票各5%–10% · 合计≤20%`
       : d.portfolioRule
         ? '同质双票已去重'
-      : `今日上限${d.maxPicks}只 · 常态1–2只`;
+      : `今日上限${d.maxPicks}只 · 常态1只`;
     $('lockTime').textContent = lockTimeText(d.lockedAt);
-    $('snapshotTime').textContent = '快照 ' + d.snapshot;
+    $('snapshotTime').textContent = sharedArchive
+      ? (d.snapshotMode === 'rebuild' ? '09:25历史重建' : '共享快照 09:25')
+      : '快照 ' + d.snapshot;
     $('pickCount').textContent = d.picks.length + '只';
     $('candidateCount').textContent = d.ranked.length + '只达标 · ' + d.all.filter((c) => c.filtered).length + '只淘汰';
     $('footStatus').textContent = '定稿日 ' + d.day + ' · ' + d.all.length + '只候选 · ' + (d.snapshotId ? '独立评分' : '实时计算') + ' · 已锁定';
     $('selectBtn').textContent = '已选定';
     $('selectBtn').disabled = true;
-    $('actionHint').textContent = '09:25定稿已冻结 · 后台只补收盘';
+    $('actionHint').textContent = sharedArchive
+      ? '共享09:25归档已统一 · 三端同一结果'
+      : '09:25定稿已冻结 · 后台只补收盘';
 
     const openPickDetails = new Set(
       [...document.querySelectorAll('#picks .pick-details[open]')].map((node) => node.dataset.code)
@@ -3236,7 +3254,7 @@ body.modal-open{overflow:hidden}
       });
       const existing = loadLock();
       const nextFingerprint = lockFingerprint(data);
-      const allowCanonicalReplace = reason === 'server-canonical';
+      const allowCanonicalReplace = reason === 'server-canonical' || reason === 'shared-canonical';
       if (existing && !allowCanonicalReplace && lockFingerprint(existing) !== nextFingerprint) {
         appendLockAudit('blocked-rewrite', {
           reason,
@@ -3285,21 +3303,7 @@ body.modal-open{overflow:hidden}
   }
 
   async function loadServerSelection(timeout = 4000) {
-    if (new URLSearchParams(location.search).get('automation') === '1') return null;
-    try {
-      await loadScript(`${SERVER_SELECTION_URL}?v=${Date.now()}`, 'UTF-8', timeout);
-    } catch (_) {
-      return null;
-    }
-    const payload = window.AUCTION_SERVER_SELECTION;
-    if (!payload || String(payload.day || '') !== ymdOffset(0) ||
-        !payload.data || !Array.isArray(payload.data.picks)) return null;
-    return {
-      ...payload.data,
-      lockedAt: payload.data.lockedAt || payload.lockedAt || clockText(),
-      selectionSource: 'server-canonical',
-      serverGeneratedAt: payload.generatedAt || ''
-    };
+    return null;
   }
 
   function candidateCloudEligible(payload) {
@@ -3348,14 +3352,7 @@ body.modal-open{overflow:hidden}
   }
 
   async function loadServerCandidates(timeout = 3000) {
-    if (new URLSearchParams(location.search).get('automation') === '1') return null;
-    try {
-      await loadScript(`${SERVER_CANDIDATES_URL}?v=${Date.now()}`, 'UTF-8', timeout);
-    } catch (_) {
-      return null;
-    }
-    const payload = window.AUCTION_SERVER_CANDIDATES;
-    return installServerCandidates(payload, true) ? payload : null;
+    return null;
   }
 
   async function loadArchiveRecords(timeout = 12000) {
@@ -3396,11 +3393,18 @@ body.modal-open{overflow:hidden}
   async function modelFromArchive(rec) {
     const snapshot = rec && rec.rawSnapshot;
     if (!snapshot) return null;
-    return buildModel(
+    const data = await buildModel(
       { day: snapshot.poolDay || snapshot.day, rows: snapshot.pool, poolType: snapshot.poolType || 'snapshot' },
       snapshot.quotes,
       snapshot
     );
+    return {
+      ...data,
+      lockedAt: rec.snapshotLockedAt || rec.lockedAt || rec.finalizedAt || data.lockedAt,
+      archiveGeneratedAt: rec.generatedAt || '',
+      snapshotMode: rec.snapshotMode || '',
+      selectionSource: 'independent-snapshot'
+    };
   }
 
   async function runSelection(manual) {
@@ -3608,13 +3612,14 @@ body.modal-open{overflow:hidden}
     }
       const rec = currentArchiveRecord(records);
       const server = await serverPromise;
-      const shared = server ? null : rec ? await modelFromArchive(rec) : null;
+      const shared = rec ? await modelFromArchive(rec) : null;
       const storedLock = loadLock();
-      const saved = server || storedLock || shared;
+      const saved = shared || server || storedLock;
       state.previous = resolvePreviousSelection();
       renderPreviousSelection();
       if (saved) {
-        if (server) saveLock(server, 'server-canonical');
+        if (shared) saveLock(shared, 'shared-canonical');
+        else if (server) saveLock(server, 'server-canonical');
         state.data = saved;
         state.locked = true;
         render();
