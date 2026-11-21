@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-20-fast-intraday-v59">
+  <meta name="apanel-build" content="2026-11-21-strict-selection-v61">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -764,11 +764,11 @@ body.modal-open{overflow:hidden}
         <p><b>09:46确认</b><span>09:45 的价必须同时站上开盘价和分时均价，且 9:30–9:45 最低价未跌破开盘价 1%。三项全部通过才补第二笔；任一失败或数据不齐，不补仓。</span></p>
         <p><b>盘口G项</b><span>用 09:25 腾讯五档委买、委卖计算委比，计 0–6 分；委比低于 -30% 直接淘汰。G 项平均增加约 3 分，动态门槛同步整体上调 3 分。</span></p>
         <p><b>封单可买性</b><span>开在涨停价时，用买一价 × 买一量估算封单额，并按封单额和流通市值判断“可排队 / 排队偏难 / 难排队”；只展示，不加分。</span></p>
-        <p><b>公告核查</b><span>选股最后自动读取最近公告，识别立案调查、监管函、问询函、警示函、退市风险、异常波动、减持、预亏等风险关键词；有风险则标红并把仓位上限降到 ≤5%，查不到明确标记“公告未核查”。</span></p>
+        <p><b>公告核查</b><span>选股最后自动读取最近公告，识别立案调查、监管函、问询函、警示函、退市风险、异常波动、减持、预亏等风险关键词；有风险则取消本次优选，查不到明确标记“公告未核查”。</span></p>
         <p><b>高开处理</b><span>竞价高开超过 5.5% 不追；高开 1.5%–5.5% 只等回落承接，不接一致加速。</span></p>
         <p><b>止损纪律</b><span>较竞价参考价 -2% 为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行止损。</span></p>
         <p><b>止盈纪律</b><span>主板涨到 +4%～+5% 先卖一半，+7%～+8% 再减；封板可持有，开板后回封失败则清掉剩余仓位。</span></p>
-        <p><b>直接放弃</b><span>打板路径低开超过 -1.5% 不主动买；低开超过 -2.5% 的只在「低吸反核」分支里做，且必须站上分时均价。板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
+        <p><b>直接放弃</b><span>只在启动期或发酵期出手；冰点、高潮、分歧、退潮全部空仓。优选仅接受竞价 -0.5%～+2.5%、同板块至少3只涨停且板块前二。板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
       </div>
     </details>
 
@@ -828,7 +828,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v59-20261120-fast-intraday';
+  const VERSION = 'auction-v61-20261121-strict-selection';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2550,7 +2550,7 @@ body.modal-open{overflow:hidden}
     if (marketHeight >= 5 && topGap >= 2) return { label: '高潮期', note: '只持筹、少新开，不接一致加速' };
     if (marketHeight >= 4 && topGap >= 0 && highOpen >= .5) return { label: '发酵期', note: '主线完整时以3进4为核心' };
     if (topGap < 0 || highOpen < .5) return { label: '分歧期', note: '只做弱转强或分歧回封' };
-    return { label: '启动期', note: '优先板块前三辨识度' };
+    return { label: '启动期', note: '只做板块前二，等待确认' };
   }
 
   function positionOf(c, cycle) {
@@ -2674,14 +2674,14 @@ body.modal-open{overflow:hidden}
     const cycle = cycleOf(repGap, maxHeight, highOpen);
 
     all.forEach((c) => {
-      c.strategy = Number.isFinite(c.gap) && c.gap < -2.5 ? '低吸' : '打板';
+      c.strategy = '打板';
       if (/ST|退/i.test(c.name)) c.filtered = 'ST或退市风险';
       else if (!Number.isFinite(c.gap)) c.filtered = '竞价行情缺失';
       else if (!Number.isFinite(c.ydayAmount)) c.filtered = '昨日成交额缺失';
       else if (c.gap < -7) c.filtered = '低开超过-7%';
       else if (c.gap > 6.5) c.filtered = '高开超过6.5%';
-      else if (c.gap < -2.5) c.filtered = '低开超过-2.5%，不参与打板';
-      else if (c.gap > 3) c.filtered = '高开超过3%，不追价';
+      else if (c.gap < -0.5) c.filtered = '竞价低于-0.5%，不参与';
+      else if (c.gap > 2.5) c.filtered = '竞价高于+2.5%，不追价';
       else if (Number.isFinite(c.bookRatio) && c.bookRatio < -30) c.filtered = '竞价委比低于-30%';
       else if (c.code === rep.code && repGap < -3) c.filtered = '最高标竞价低于-3%';
       else if (!Number.isFinite(c.firstTime)) c.filtered = '昨日封板时间缺失';
@@ -2744,11 +2744,9 @@ body.modal-open{overflow:hidden}
     if (poolSize >= 60) env = { threshold: 66, multiplier: .9, maxPicks: 1, poolSize };
     else if (poolSize >= 20 && poolSize < 40) env = { threshold: 59, multiplier: 1.05, maxPicks: 2, poolSize };
     else if (poolSize > 0 && poolSize < 20) env = { threshold: 73, multiplier: 1, maxPicks: 0, poolSize };
-    if (['退潮期', '分歧期'].includes(cycle.label)) {
+    if (['退潮期', '分歧期', '冰点期', '高潮期'].includes(cycle.label)) {
       env.threshold = Math.max(env.threshold, 66);
       env.maxPicks = 0;
-    } else if (['冰点期', '高潮期'].includes(cycle.label)) {
-      env.maxPicks = 1;
     }
     env.maxPicks = Math.min(env.maxPicks, 1);
 
