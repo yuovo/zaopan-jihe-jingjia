@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-21-strict-selection-v61">
+  <meta name="apanel-build" content="2026-11-22-popularity-top100-v62">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -240,6 +240,19 @@ main{width:min(1080px,calc(100% - 28px));margin:0 auto;padding:26px 0 44px}
   overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;
 }
 .candidate-open{display:block;color:#8d5a20;font-size:9.5px;font-weight:700;text-align:right}
+.popularity-board{padding:12px 14px 14px}
+.popularity-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.popularity-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto auto;align-items:center;gap:7px;min-height:40px;padding:7px 9px;border:1px solid #e4dacb;border-radius:10px;background:#fffdf8}
+.popularity-rank{display:flex;align-items:center;justify-content:center;width:30px;height:26px;border-radius:8px;background:#f2ece0;color:#7c6b51;font:700 11px/1 Consolas,monospace}
+.popularity-row.top1 .popularity-rank{background:#f6d27c;color:#68450a}
+.popularity-row.top2 .popularity-rank{background:#dce3e7;color:#42555e}
+.popularity-row.top3 .popularity-rank{background:#ead2bd;color:#765034}
+.popularity-name{min-width:0}
+.popularity-name b{display:block;color:var(--forest);font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.popularity-name small{display:block;margin-top:2px;color:#8b928e;font:600 9px/1.2 Consolas,monospace}
+.popularity-price{color:#4f5f59;font:700 11px/1.2 Consolas,monospace;white-space:nowrap}
+.popularity-pct{font:700 11px/1.2 Consolas,monospace;white-space:nowrap}
+.popularity-pct.up{color:var(--red)}.popularity-pct.down{color:var(--teal)}
 .candidate-row[role="button"],.ladder-chip[role="button"]{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
 .candidate-row[role="button"]:active,.ladder-chip[role="button"]:active{transform:scale(.985)}
 .candidate-row[role="button"]:focus-visible,.ladder-chip[role="button"]:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
@@ -566,6 +579,12 @@ body.modal-open{overflow:hidden}
   .nextday-factor b{font-size:10.5px}
   .nextday-gate{font-size:10.5px;line-height:1.55}
   .candidate-open{margin-top:auto;font-size:10.5px;line-height:1.4}
+  .popularity-board{padding:10px}
+  .popularity-list{grid-template-columns:1fr;gap:5px}
+  .popularity-row{min-height:44px;padding:8px 9px}
+  .popularity-name b{font-size:13px}
+  .popularity-name small{font-size:10px}
+  .popularity-price,.popularity-pct{font-size:12px}
   .final-pct{font-size:11.5px;line-height:1.45}
   .ladder-pool{padding:11px}
   .ladder-tier{
@@ -728,6 +747,14 @@ body.modal-open{overflow:hidden}
       </div>
     </details>
 
+    <details class="fold" id="popularityFold" open>
+      <summary><span>每日个股人气排行榜</span><b id="popularityCount">等待数据</b></summary>
+      <p class="source-note" id="popularityNote"><b>数据说明：</b>东方财富个股人气榜，仅展示前100名。</p>
+      <div id="popularityList" class="popularity-board">
+        <div class="empty-state">正在读取个股人气榜前100名…</div>
+      </div>
+    </details>
+
     <details class="fold ladder-fold">
       <summary><span id="ladderTitle">连板池</span><b id="ladderCount">等待数据</b></summary>
       <p class="source-note" id="ladderNote"><b>口径说明：</b>板块名称取自东方财富行业板块；第 1 名为龙头。</p>
@@ -821,6 +848,7 @@ body.modal-open{overflow:hidden}
     flow: 'https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get',
     flowMinute: 'https://push2.eastmoney.com/api/qt/stock/fflow/kline/get',
     minute: 'https://proxy.finance.qq.com/ifzqgtimg/appstock/app/minute/query',
+    popularity: 'https://emappdata.eastmoney.com/stockrank/getAllCurrentList',
     announce: 'https://np-anotice-stock.eastmoney.com/api/security/ann',
     announceProxy: 'https://r.jina.ai/',
     quote: 'https://qt.gtimg.cn/q=',
@@ -828,7 +856,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v61-20261121-strict-selection';
+  const VERSION = 'auction-v62-20261122-popularity-top100';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -837,6 +865,7 @@ body.modal-open{overflow:hidden}
   const NEXT_CANDIDATE_KEY = 'auction_lite_next_candidates_v1';
   const MARKET_SNAPSHOT_KEY = 'auction_lite_market_snapshots_v1';
   const CLOUD_CANDIDATES_KEY = 'auction_lite_cloud_candidates_v1';
+  const POPULARITY_CACHE_KEY = 'auction_lite_popularity_top100_v1';
   const LEGACY_SELECTIONS = {
     '20261106': [
       {
@@ -870,7 +899,8 @@ body.modal-open{overflow:hidden}
     closeReviewAt: 0, closeReviewLoading: false, finalQuotes: {},
     confirmAt: 0, confirmLoading: false,
     candidateConditionLoading: false, candidateConditionDay: '',
-    candidatesBoot: true
+    candidatesBoot: true, popularityLoading: false, popularityAt: 0,
+    popularityData: null
   };
   let reasonRequestSerial = 0;
   const announcementCache = new Map();
@@ -3456,6 +3486,110 @@ body.modal-open{overflow:hidden}
     return installServerCandidates(payload, true) ? payload : null;
   }
 
+  function restorePopularityCache() {
+    try {
+      const cached = JSON.parse(localStorage.getItem(POPULARITY_CACHE_KEY) || 'null');
+      if (!cached || !Array.isArray(cached.rows) || !cached.rows.length) return false;
+      state.popularityData = cached;
+      state.popularityAt = Number(cached.cachedAt) || 0;
+      renderPopularity();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function renderPopularity() {
+    const box = $('popularityList');
+    const data = state.popularityData;
+    if (!box) return;
+    if (!data?.rows?.length) {
+      $('popularityCount').textContent = state.popularityLoading ? '读取中' : '等待数据';
+      box.innerHTML = `<div class="empty-state">${state.popularityLoading ? '正在读取个股人气榜前100名…' : '人气榜暂未读取，点击刷新重试。'}</div>`;
+      return;
+    }
+    $('popularityCount').textContent = `${data.rows.length}只 · ${data.updatedAt || '--'}`;
+    $('popularityNote').innerHTML = `<b>数据说明：</b>东方财富个股人气榜，仅展示前100名；行情更新 ${esc(data.updatedAt || '--')}。排名代表公开人气榜顺序，不代表涨幅或买入建议。`;
+    box.innerHTML = data.rows.map((row) => {
+      const pct = Number(row.pct);
+      const tone = Number.isFinite(pct) ? pct >= 0 ? 'up' : 'down' : '';
+      return `<div class="popularity-row ${row.rank <= 3 ? `top${row.rank}` : ''}">
+        <span class="popularity-rank">${row.rank}</span>
+        <span class="popularity-name"><b>${esc(row.name || row.code.slice(2))}</b><small>${esc(row.code.slice(2))}</small></span>
+        <span class="popularity-price">${row.price > 0 ? price(row.price) : '--'}</span>
+        <span class="popularity-pct ${tone}">${Number.isFinite(pct) ? `${sign(pct)}%` : '--'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  async function refreshPopularity(force = false) {
+    if (state.popularityLoading) return;
+    if (!state.popularityData) restorePopularityCache();
+    if (!force && state.popularityAt && Date.now() - state.popularityAt < 10 * 60000) {
+      renderPopularity();
+      return;
+    }
+    state.popularityLoading = true;
+    renderPopularity();
+    try {
+      const response = await fetch(`${API.popularity}?_=${Date.now()}`, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: 'appId01',
+          globalId: '786e4c21-70dc-435a-93bb-38',
+          marketType: '',
+          pageNo: 1,
+          pageSize: 100
+        })
+      });
+      if (!response.ok) throw new Error(`人气榜 HTTP ${response.status}`);
+      const payload = await response.json();
+      const rawRows = Array.isArray(payload?.data) ? payload.data.slice(0, 100) : [];
+      if (rawRows.length !== 100) throw new Error(`人气榜只返回${rawRows.length}只`);
+      const baseRows = rawRows.map((row, index) => {
+        const sc = String(row.sc || '').toLowerCase();
+        return {
+          rank: Number(row.rk) || index + 1,
+          code: sc,
+          name: sc.slice(2),
+          price: NaN,
+          pct: NaN
+        };
+      });
+      state.popularityData = {
+        rows: baseRows,
+        updatedAt: clockText(),
+        cachedAt: Date.now()
+      };
+      renderPopularity();
+      const qs = await quotes(baseRows.map((row) => row.code));
+      const rows = baseRows.map((row) => {
+        const quote = qs[row.code];
+        const quotePrice = Number(quote?.price);
+        const quotePct = Number(quote?.pct);
+        return {
+          ...row,
+          name: quote?.name || row.name,
+          price: Number.isFinite(quotePrice) ? quotePrice : NaN,
+          pct: Number.isFinite(quotePct) ? quotePct : NaN
+        };
+      });
+      state.popularityData = { rows, updatedAt: clockText(), cachedAt: Date.now() };
+      state.popularityAt = Date.now();
+      try { localStorage.setItem(POPULARITY_CACHE_KEY, JSON.stringify(state.popularityData)); } catch (_) {}
+      renderPopularity();
+    } catch (error) {
+      if (!state.popularityData?.rows?.length) {
+        $('popularityCount').textContent = '读取失败';
+        $('popularityList').innerHTML = `<div class="empty-state">人气榜读取失败：${esc(error.message)}。点击刷新重试。</div>`;
+      }
+    } finally {
+      state.popularityLoading = false;
+    }
+  }
+
   async function loadArchiveRecords(timeout = 12000) {
     try {
       await loadScript(API.archive + '?v=' + Date.now(), 'UTF-8', timeout);
@@ -3627,6 +3761,9 @@ body.modal-open{overflow:hidden}
     if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 54000) {
       refreshPicksClose(false);
     }
+    if ($('popularityFold')?.open && Date.now() - state.popularityAt >= 5 * 60000) {
+      void refreshPopularity(false);
+    }
     if (state.booting && !state.locked) {
       $('selectBtn').disabled = true;
       $('selectBtn').textContent = '加载榜单…';
@@ -3654,6 +3791,7 @@ body.modal-open{overflow:hidden}
     state.previous = resolvePreviousSelection();
     renderPreviousSelection();
     restoreCachedCandidates();
+    restorePopularityCache();
     restoreLatestMarketSnapshot();
     const initialLock = loadLock();
     if (initialLock) {
@@ -3679,6 +3817,7 @@ body.modal-open{overflow:hidden}
       if (state.locked) {
         refreshTodayMarket(true);
         refreshPicksClose(true);
+        refreshPopularity(true);
         toast('行情与收盘数据已刷新，不重新改榜');
         return;
       }
@@ -3690,11 +3829,15 @@ body.modal-open{overflow:hidden}
       }
       runSelection(true);
     });
+    $('popularityFold').addEventListener('toggle', () => {
+      if ($('popularityFold').open) void refreshPopularity(false);
+    });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && !state.booting && !state.locked && !state.loading) runSelection(false);
     });
     tick();
     setInterval(tick, 1000);
+    void refreshPopularity(false);
     try {
       const serverPromise = loadServerSelection(3500);
       await candidateBootPromise;
