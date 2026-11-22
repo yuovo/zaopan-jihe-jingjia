@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-22-popularity-top100-v62">
+  <meta name="apanel-build" content="2026-11-22-popularity-date-v63">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -748,7 +748,7 @@ body.modal-open{overflow:hidden}
     </details>
 
     <details class="fold" id="popularityFold" open>
-      <summary><span>每日个股人气排行榜</span><b id="popularityCount">等待数据</b></summary>
+      <summary><span id="popularityTitle">当日个股人气排行榜</span><b id="popularityCount">等待数据</b></summary>
       <p class="source-note" id="popularityNote"><b>数据说明：</b>东方财富个股人气榜，仅展示前100名。</p>
       <div id="popularityList" class="popularity-board">
         <div class="empty-state">正在读取个股人气榜前100名…</div>
@@ -856,7 +856,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v62-20261122-popularity-top100';
+  const VERSION = 'auction-v63-20261122-popularity-date';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -3490,6 +3490,11 @@ body.modal-open{overflow:hidden}
     try {
       const cached = JSON.parse(localStorage.getItem(POPULARITY_CACHE_KEY) || 'null');
       if (!cached || !Array.isArray(cached.rows) || !cached.rows.length) return false;
+      if (!cached.date && cached.cachedAt) {
+        cached.date = new Date(Number(cached.cachedAt)).toLocaleDateString('en-CA', {
+          timeZone: 'Asia/Shanghai'
+        }).replaceAll('-', '');
+      }
       state.popularityData = cached;
       state.popularityAt = Number(cached.cachedAt) || 0;
       renderPopularity();
@@ -3504,10 +3509,12 @@ body.modal-open{overflow:hidden}
     const data = state.popularityData;
     if (!box) return;
     if (!data?.rows?.length) {
+      $('popularityTitle').textContent = `${displayDay(ymdOffset(0))} 当日个股人气排行榜`;
       $('popularityCount').textContent = state.popularityLoading ? '读取中' : '等待数据';
       box.innerHTML = `<div class="empty-state">${state.popularityLoading ? '正在读取个股人气榜前100名…' : '人气榜暂未读取，点击刷新重试。'}</div>`;
       return;
     }
+    $('popularityTitle').textContent = `${displayDay(data.date || ymdOffset(0))} 当日个股人气排行榜`;
     $('popularityCount').textContent = `${data.rows.length}只 · ${data.updatedAt || '--'}`;
     $('popularityNote').innerHTML = `<b>数据说明：</b>东方财富个股人气榜，仅展示前100名；行情更新 ${esc(data.updatedAt || '--')}。排名代表公开人气榜顺序，不代表涨幅或买入建议。`;
     box.innerHTML = data.rows.map((row) => {
@@ -3560,6 +3567,7 @@ body.modal-open{overflow:hidden}
       });
       state.popularityData = {
         rows: baseRows,
+        date: ymdOffset(0),
         updatedAt: clockText(),
         cachedAt: Date.now()
       };
@@ -3576,7 +3584,12 @@ body.modal-open{overflow:hidden}
           pct: Number.isFinite(quotePct) ? quotePct : NaN
         };
       });
-      state.popularityData = { rows, updatedAt: clockText(), cachedAt: Date.now() };
+      state.popularityData = {
+        rows,
+        date: ymdOffset(0),
+        updatedAt: clockText(),
+        cachedAt: Date.now()
+      };
       state.popularityAt = Date.now();
       try { localStorage.setItem(POPULARITY_CACHE_KEY, JSON.stringify(state.popularityData)); } catch (_) {}
       renderPopularity();
