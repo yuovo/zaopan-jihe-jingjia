@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-22-popularity-date-v63">
+  <meta name="apanel-build" content="2026-11-22-research-filter-v64">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -795,7 +795,7 @@ body.modal-open{overflow:hidden}
         <p><b>高开处理</b><span>竞价高开超过 5.5% 不追；高开 1.5%–5.5% 只等回落承接，不接一致加速。</span></p>
         <p><b>止损纪律</b><span>较竞价参考价 -2% 为硬止损；跌破分时均价且 15 分钟不能收复，同样退出。A股 T+1，当日买入只能下一交易日起执行止损。</span></p>
         <p><b>止盈纪律</b><span>主板涨到 +4%～+5% 先卖一半，+7%～+8% 再减；封板可持有，开板后回封失败则清掉剩余仓位。</span></p>
-        <p><b>直接放弃</b><span>只在启动期或发酵期出手；冰点、高潮、分歧、退潮全部空仓。优选仅接受竞价 -0.5%～+2.5%、同板块至少3只涨停且板块前二。板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
+        <p><b>直接放弃</b><span>只在启动期或发酵期出手；冰点、高潮、分歧、退潮全部空仓。优选仅接受竞价 -0.5%～+2.5%、同板块至少3只涨停且板块前二、委比非负、昨日换手不超40%。板块走弱、量价背离、跌破开盘价后不能快速收回，均放弃。</span></p>
       </div>
     </details>
 
@@ -856,7 +856,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v63-20261122-popularity-date';
+  const VERSION = 'auction-v64-20261122-research-filter';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -2677,7 +2677,7 @@ body.modal-open{overflow:hidden}
         gap: gapOf(q), price: q?.open > 0 ? q.open : q?.price, last: q?.price,
         auctionVolume: auctionQ ? Number(q?.volume) || NaN : NaN,
         auctionAmount: auctionQ ? Number(q?.amount) || NaN : NaN,
-        ydayAmount, floatCap: Number(x.ltsz) || 0,
+        ydayAmount, floatCap: Number(x.ltsz) || 0, turnover: Number(x.hs) || NaN,
         bookRatio: book.ratio, bidVolume: book.bidVolume, askVolume: book.askVolume,
         buyability, amountRatio: NaN, sectorCount: 0, sectorRank: 0,
         sectorHigher: false, sectorLeaderGap: NaN, downgraded: boardDowngraded(code),
@@ -2712,13 +2712,14 @@ body.modal-open{overflow:hidden}
       else if (c.gap > 6.5) c.filtered = '高开超过6.5%';
       else if (c.gap < -0.5) c.filtered = '竞价低于-0.5%，不参与';
       else if (c.gap > 2.5) c.filtered = '竞价高于+2.5%，不追价';
-      else if (Number.isFinite(c.bookRatio) && c.bookRatio < -30) c.filtered = '竞价委比低于-30%';
+      else if (Number.isFinite(c.bookRatio) && c.bookRatio < 0) c.filtered = '竞价委比为负';
       else if (c.code === rep.code && repGap < -3) c.filtered = '最高标竞价低于-3%';
       else if (!Number.isFinite(c.firstTime)) c.filtered = '昨日封板时间缺失';
       else if (c.firstTime > 143000) c.filtered = '昨日14:30后封板';
       else if (c.firstTime > 133000 && c.gap < -1) c.filtered = '13:30后封板且竞价低于-1%';
       else if (c.height === 2 && c.firstTime > 110000) c.filtered = '2进3非上午强势板';
       else if (c.height >= 3 && c.firstTime > 130000) c.filtered = '高位板未在午前封板';
+      else if (Number.isFinite(c.turnover) && c.turnover > 40) c.filtered = '昨日换手超过40%';
       else if (c.sectorCount < 3) c.filtered = '板块涨停不足3只';
       else if (c.sectorRank > 2) c.filtered = '板块辨识度未进前二';
       else if (c.height === 1 && c.firstTime > 100000) c.filtered = '1进2非早盘强势板';
