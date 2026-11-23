@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="竞价优选">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apanel-build" content="2026-11-22-research-filter-v64">
+  <meta name="apanel-build" content="2026-11-23-ladder-popularity-v65">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="icon" href="./apple-touch-icon.png">
@@ -856,7 +856,7 @@ body.modal-open{overflow:hidden}
   };
   const ZT_UT = '7eea3edcaed734bea9cbfc24409ed989';
   const EM_FLOW_UT = 'fa5fd1943c7b386f172d6893dbfba10b';
-  const VERSION = 'auction-v64-20261122-research-filter';
+  const VERSION = 'auction-v65-20261123-ladder-popularity';
   const SNAPSHOT_VERSION = 'auction-snapshot-v1';
   const LOCK_KEY = 'auction_lite_lock_v2';
   const LOCK_SCHEMA_VERSION = 'auction-lock-v3';
@@ -900,7 +900,7 @@ body.modal-open{overflow:hidden}
     confirmAt: 0, confirmLoading: false,
     candidateConditionLoading: false, candidateConditionDay: '',
     candidatesBoot: true, popularityLoading: false, popularityAt: 0,
-    popularityData: null
+    popularityData: null, cloudCandidateAt: 0
   };
   let reasonRequestSerial = 0;
   const announcementCache = new Map();
@@ -3047,7 +3047,7 @@ body.modal-open{overflow:hidden}
     $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
     $('ladderTitle').textContent = `${dayLabel} 连板池`;
     $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；本区严格按“明日封板分”从高到低排序，基础分只作结构参考。明日封板分加入近30日公告风险、当日主力资金、封单占成交、封单覆盖率和流通市值。明日参考封单量按流通市值×换手率档位×连板高度估算；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
-    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；连板采用同花顺式「X天Y板」口径；板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
+    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；这里只统计2板及以上，采用同花顺式「X天Y板」口径；首板不放进连板池。板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 收盘后更新为最终定稿。</b>`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
     const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
@@ -3107,11 +3107,12 @@ body.modal-open{overflow:hidden}
     } : null;
     if (shown.length) void hydrateCandidateConditions(shown, pool.day);
 
+    const ladderRows = pool.rows.filter((x) => Number(x.boards) >= 2);
     const groups = {};
-    pool.rows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
+    ladderRows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
     const tiers = Object.keys(groups).map(Number).sort((a, b) => b - a);
-    $('ladderCount').textContent = `${pool.rows.length}只 · ${pool.final ? '收盘定稿' : '盘中更新'}${updateLabel}`;
-    ladder.innerHTML = tiers.map((height) => `
+    $('ladderCount').textContent = `${ladderRows.length}只 · ${pool.final ? '收盘定稿' : '盘中更新'}${updateLabel}`;
+    ladder.innerHTML = tiers.length ? tiers.map((height) => `
       <article class="ladder-tier">
         <strong>${height}板</strong>
         <div class="ladder-stocks">${groups[height].sort((a, b) =>
@@ -3131,7 +3132,7 @@ body.modal-open{overflow:hidden}
             <span class="ladder-reason-more">查看封板原因 →</span>
           </div>`;
         }).join('')}</div>
-      </article>`).join('');
+      </article>`).join('') : '<div class="empty-state">今日没有2板及以上连板股。</div>';
   }
 
   async function refreshTodayMarket(force = false) {
@@ -3478,6 +3479,7 @@ body.modal-open{overflow:hidden}
 
   async function loadServerCandidates(timeout = 3000) {
     if (new URLSearchParams(location.search).get('automation') === '1') return null;
+    state.cloudCandidateAt = Date.now();
     try {
       await loadScript(`${SERVER_CANDIDATES_URL}?v=${Date.now()}`, 'UTF-8', timeout);
     } catch (_) {
@@ -3517,7 +3519,7 @@ body.modal-open{overflow:hidden}
     }
     $('popularityTitle').textContent = `${displayDay(data.date || ymdOffset(0))} 当日个股人气排行榜`;
     $('popularityCount').textContent = `${data.rows.length}只 · ${data.updatedAt || '--'}`;
-    $('popularityNote').innerHTML = `<b>数据说明：</b>东方财富个股人气榜，仅展示前100名；行情更新 ${esc(data.updatedAt || '--')}。排名代表公开人气榜顺序，不代表涨幅或买入建议。`;
+    $('popularityNote').innerHTML = `<b>数据说明：</b>东方财富个股人气榜，仅展示前100名；每60秒尝试更新，收盘后继续更新。行情更新 ${esc(data.updatedAt || '--')}。排名代表公开人气榜顺序，不代表涨幅或买入建议。`;
     box.innerHTML = data.rows.map((row) => {
       const pct = Number(row.pct);
       const tone = Number.isFinite(pct) ? pct >= 0 ? 'up' : 'down' : '';
@@ -3533,7 +3535,7 @@ body.modal-open{overflow:hidden}
   async function refreshPopularity(force = false) {
     if (state.popularityLoading) return;
     if (!state.popularityData) restorePopularityCache();
-    if (!force && state.popularityAt && Date.now() - state.popularityAt < 10 * 60000) {
+    if (!force && state.popularityAt && Date.now() - state.popularityAt < 60 * 1000) {
       renderPopularity();
       return;
     }
@@ -3775,8 +3777,13 @@ body.modal-open{overflow:hidden}
     if (state.data?.picks?.length && day >= 1 && day <= 5 && sec >= 54000) {
       refreshPicksClose(false);
     }
-    if ($('popularityFold')?.open && Date.now() - state.popularityAt >= 5 * 60000) {
+    if ($('popularityFold')?.open && Date.now() - state.popularityAt >= 60 * 1000) {
       void refreshPopularity(false);
+    }
+    if (day >= 1 && day <= 5 && sec >= 54060 &&
+        state.marketPool?.day !== today &&
+        Date.now() - state.cloudCandidateAt >= 2 * 60000) {
+      void loadServerCandidates(2500);
     }
     if (state.booting && !state.locked) {
       $('selectBtn').disabled = true;
