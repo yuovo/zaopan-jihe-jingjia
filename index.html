@@ -900,7 +900,7 @@ body.modal-open{overflow:hidden}
     confirmAt: 0, confirmLoading: false,
     candidateConditionLoading: false, candidateConditionDay: '',
     candidatesBoot: true, popularityLoading: false, popularityAt: 0,
-    popularityData: null, cloudCandidateAt: 0
+    popularityData: null, cloudCandidateAt: 0, cloudCandidates: null
   };
   let reasonRequestSerial = 0;
   const announcementCache = new Map();
@@ -994,7 +994,8 @@ body.modal-open{overflow:hidden}
   }
 
   async function openReasonModal(code, kind) {
-    const row = state.marketPool?.rows?.find((x) => String(x.code) === String(code));
+    const row = [...(state.marketPool?.rows || []), ...(state.cloudCandidates?.rows || [])]
+      .find((x) => String(x.code) === String(code));
     if (!row) return;
     const requestId = ++reasonRequestSerial;
     const day = state.marketPool?.day || marketDay();
@@ -2112,7 +2113,6 @@ body.modal-open{overflow:hidden}
   }
 
   function restoreLatestMarketSnapshot() {
-    if (state.marketPool?.cloud && state.marketPool.rows?.length) return true;
     const today = ymdOffset(0);
     const latest = Object.values(loadMarketSnapshots())
       .filter((x) => x && String(x.day) <= today && Array.isArray(x.rows) && x.rows.length)
@@ -3029,9 +3029,12 @@ body.modal-open{overflow:hidden}
 
   function renderTodayMarket() {
     const pool = state.marketPool;
+    const candidatePool = state.cloudCandidates?.rows?.length ? state.cloudCandidates : pool;
+    const ladderPool = pool?.rows?.length ? pool : null;
     const list = $('nextCandidateList');
     const ladder = $('ladderList');
-    if (!pool || !Array.isArray(pool.rows) || !pool.rows.length) {
+    if ((!candidatePool || !Array.isArray(candidatePool.rows) || !candidatePool.rows.length) &&
+        !ladderPool) {
       window.AUCTION_CANDIDATES_SNAPSHOT = null;
       $('nextCandidateTitle').textContent = '涨停优选候选 · 下一交易日参考';
       $('ladderTitle').textContent = '连板池';
@@ -3041,22 +3044,26 @@ body.modal-open{overflow:hidden}
       ladder.innerHTML = '<div class="empty-state">盘中读取今日涨停梯队，15:00后转为收盘定稿。</div>';
       return;
     }
-    const dayLabel = displayDay(pool.day);
-    const closeLabel = marketCloseLabel(pool.day);
-    const updateLabel = pool.updatedAt ? ` · 更新 ${pool.updatedAt}` : '';
-    $('nextCandidateTitle').textContent = `${dayLabel} 涨停优选候选 · 下一交易日参考`;
-    $('ladderTitle').textContent = `${dayLabel} 连板池`;
-    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；本区严格按“明日封板分”从高到低排序，基础分只作结构参考。明日封板分加入近30日公告风险、当日主力资金、封单占成交、封单覆盖率和流通市值。明日参考封单量按流通市值×换手率档位×连板高度估算；排除创业板、科创板、北交所和 ST。<b> 本区盘中动态更新，不改变09:25优选定稿。</b>`;
-    $('ladderNote').innerHTML = `<b>数据日：</b>${dayLabel}${updateLabel}；这里只统计2板及以上，采用同花顺式「X天Y板」口径；首板不放进连板池。板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 收盘后更新为最终定稿。</b>`;
+    const candidateDay = String(candidatePool?.day || ladderPool?.day || ymdOffset(0));
+    const ladderDay = String(ladderPool?.day || candidateDay);
+    const candidateDayLabel = displayDay(candidateDay);
+    const ladderDayLabel = displayDay(ladderDay);
+    const closeLabel = marketCloseLabel(candidateDay);
+    const candidateUpdate = candidatePool?.updatedAt ? ` · 更新 ${candidatePool.updatedAt}` : '';
+    const ladderUpdate = ladderPool?.updatedAt ? ` · 更新 ${ladderPool.updatedAt}` : '';
+    $('nextCandidateTitle').textContent = `${candidateDayLabel} 涨停优选候选 · 下一交易日参考`;
+    $('ladderTitle').textContent = `${ladderDayLabel} 连板池`;
+    $('nextCandidateNote').innerHTML = `<b>数据日：</b>${candidateDayLabel}${candidateUpdate}；本区严格按“明日封板分”从高到低排序，基础分只作结构参考。明日封板分加入近30日公告风险、当日主力资金、封单占成交、封单覆盖率和流通市值。明日参考封单量按流通市值×换手率档位×连板高度估算；排除创业板、科创板、北交所和 ST。<b>共享候选文件发布后自动更新。</b>`;
+    $('ladderNote').innerHTML = `<b>数据日：</b>${ladderDayLabel}${ladderUpdate}；这里只统计2板及以上，采用同花顺式「X天Y板」口径；首板不放进连板池。板块名称取自东方财富行业板块，同板块按连板高度、首封时间、成交额排序，第1名为龙头。<b> 收盘后更新为最终定稿。</b>`;
     if ($('finalPctHeader')) $('finalPctHeader').textContent = closeLabel;
-    const main = pool.rows.filter((x) => mainBoardEligible(x.code, x.name));
+    const main = (candidatePool?.rows || []).filter((x) => mainBoardEligible(x.code, x.name));
     const ranked = main.slice().sort((a, b) =>
       nextDaySealAssessment(b).score - nextDaySealAssessment(a).score ||
       (Number(b.candidateScore) || 0) - (Number(a.candidateScore) || 0) ||
       b.boards - a.boards || (a.firstTime || Infinity) - (b.firstTime || Infinity) || b.amount - a.amount
     );
     const shown = ranked.slice(0, 20);
-    const totalCount = Math.max(ranked.length, Number(pool.totalCount) || 0);
+    const totalCount = Math.max(ranked.length, Number(candidatePool?.totalCount) || 0);
     $('nextCandidateCount').textContent = `${totalCount}只${totalCount > shown.length ? ` · 展示${shown.length}` : ''}`;
     list.innerHTML = shown.length ? shown.map((x) => {
       const assessment = nextDaySealAssessment(x);
@@ -3097,21 +3104,23 @@ body.modal-open{overflow:hidden}
     window.AUCTION_CANDIDATES_SNAPSHOT = candidatesReady ? {
       schema: 'auction-server-candidates-v1',
       generatedAt: new Date().toISOString(),
-      day: String(pool.day),
-      updatedAt: pool.updatedAt || clockText(),
+      day: candidateDay,
+      updatedAt: candidatePool?.updatedAt || clockText(),
       totalCount,
       rows: shown.map((x) => ({
         ...x,
         nextDayScore: nextDaySealAssessment(x).score
       }))
     } : null;
-    if (shown.length) void hydrateCandidateConditions(shown, pool.day);
+    if (shown.length) void hydrateCandidateConditions(shown, candidateDay);
 
-    const ladderRows = pool.rows.filter((x) => Number(x.boards) >= 2);
+    const ladderRows = (ladderPool?.rows || []).filter((x) => Number(x.boards) >= 2);
     const groups = {};
     ladderRows.forEach((x) => (groups[x.boards] = groups[x.boards] || []).push(x));
     const tiers = Object.keys(groups).map(Number).sort((a, b) => b - a);
-    $('ladderCount').textContent = `${ladderRows.length}只 · ${pool.final ? '收盘定稿' : '盘中更新'}${updateLabel}`;
+    $('ladderCount').textContent = ladderPool
+      ? `${ladderRows.length}只 · ${ladderPool.final ? '收盘定稿' : '盘中更新'}${ladderUpdate}`
+      : '等待数据';
     ladder.innerHTML = tiers.length ? tiers.map((height) => `
       <article class="ladder-tier">
         <strong>${height}板</strong>
@@ -3137,10 +3146,6 @@ body.modal-open{overflow:hidden}
 
   async function refreshTodayMarket(force = false) {
     if (state.marketPoolLoading) return;
-    if (state.marketPool?.cloud) {
-      if (force) await loadServerCandidates(3000);
-      return;
-    }
     const now = bjNow();
     const day = now.getDay();
     const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -3452,18 +3457,22 @@ body.modal-open{overflow:hidden}
       flowFetched: true,
       conditionFetched: row.announcement?.status !== 'missing'
     }));
-    state.marketPool = {
+    state.cloudCandidates = {
       day: String(payload.day),
       totalCount: Number(payload.totalCount) || rows.length,
       updatedAt: payload.updatedAt || clockText(),
       final: true,
-      cloud: true,
       rows
     };
     if (persist) {
       try { localStorage.setItem(CLOUD_CANDIDATES_KEY, JSON.stringify(payload)); } catch (_) {}
     }
     renderTodayMarket();
+    if (!state.marketPool?.rows?.length ||
+        state.marketPool.day !== String(payload.day) ||
+        state.marketPool.rows.length < rows.length) {
+      void refreshTodayMarket(true);
+    }
     return true;
   }
 
@@ -3764,8 +3773,7 @@ body.modal-open{overflow:hidden}
       refreshPreviousQuotes(false);
     }
     const weekend = day < 1 || day > 5;
-    const cloudCandidatesReady = Boolean(state.marketPool?.cloud && state.marketPool?.rows?.length);
-    const needMarket = !state.candidatesBoot && !cloudCandidatesReady && (weekend
+    const needMarket = !state.candidatesBoot && (weekend
       ? (!state.marketPool?.rows?.length || state.marketPool.day !== priorTradingDay())
       : (sec >= 34200 || !state.marketPool?.rows?.length));
     if (needMarket) {
@@ -3781,7 +3789,7 @@ body.modal-open{overflow:hidden}
       void refreshPopularity(false);
     }
     if (day >= 1 && day <= 5 && sec >= 54060 &&
-        state.marketPool?.day !== today &&
+        state.cloudCandidates?.day !== today &&
         Date.now() - state.cloudCandidateAt >= 2 * 60000) {
       void loadServerCandidates(2500);
     }
